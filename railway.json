@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "mvn -B -ntp clean package -DskipTests"
+  },
+  "deploy": {
+    "startCommand": "java -jar target/plastic-factory-manager-1.0.0.jar --spring.profiles.active=prod",
+    "healthcheckPath": "/actuator/health",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
