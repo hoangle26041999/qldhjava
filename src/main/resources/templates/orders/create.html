@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title th:text="${isEdit} ? 'Chỉnh sửa Đơn hàng' : 'Tạo Đơn hàng mới'">Đơn hàng</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .form-card { background: white; border-radius: 15px; padding: 0; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; overflow: hidden; }
+        .section-title { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 14px 22px; font-weight: 600; display: flex; align-items: center; gap: 10px; font-size: 15px; }
+        .section-title .step-num { background: rgba(255,255,255,0.2); border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+        .section-body { padding: 22px; }
+
+        .specs-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+        .spec-chip { background: #f1f4f9; border: 1px solid #e3e8ef; border-radius: 10px; padding: 10px 14px; min-width: 130px; }
+        .spec-chip .chip-label { font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.4px; }
+        .spec-chip .chip-value { font-weight: 700; color: #1e3a5f; font-size: 15px; margin-top: 2px; }
+        .spec-chip .chip-value.custom { color: #d63384; font-style: italic; }
+
+        .result-container { background: white; border-radius: 15px; padding: 0; box-shadow: 0 5px 20px rgba(0,0,0,0.05); position: sticky; top: 20px; border-top: 4px solid #2d5a87; overflow: hidden; }
+        .result-header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 14px 20px; font-weight: 600; }
+        .result-body { padding: 16px 20px; }
+        .result-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e9ecef; }
+        .result-row:last-child { border-bottom: none; }
+        .result-label { color: #6c757d; font-size: 13px; font-weight: 500; }
+        .result-value { color: #1e3a5f; font-weight: 600; font-size: 14px; }
+        .result-value.custom { color: #d63384; font-style: italic; }
+        .result-value.warn { color: #fd7e14; }
+        .result-subhead { color: #1e3a5f; font-weight: 700; font-size: 13px; margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .fee-pill { display: inline-block; background: #e7f1ff; color: #1e3a5f; border: 1px solid #b8d4f0; border-radius: 16px; padding: 6px 14px; font-size: 13px; font-weight: 500; margin: 3px; }
+        .fee-modal-list { max-height: 60vh; overflow-y: auto; }
+        .fee-modal-item { padding: 12px 14px; border-bottom: 1px solid #f1f3f5; cursor: pointer; transition: background 0.15s; user-select: none; -webkit-user-select: none; }
+        .fee-modal-item:hover { background: #f8f9fa; }
+        .fee-modal-item:active { background: #e7f1ff; }
+        .fee-modal-item.checked { background: #e7f1ff; }
+        .fee-modal-item .form-check-input { transform: scale(1.4); margin-right: 12px; cursor: pointer; flex-shrink: 0; }
+        .fee-modal-item .fee-name { font-weight: 500; flex: 1; }
+        .fee-modal-item .fee-price { color: #6c757d; font-size: 12px; white-space: nowrap; }
+        .fee-group-head { background: #1e3a5f; color: white; padding: 8px 14px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        @media (max-width: 991px) { .result-container { position: static; } }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>
+                <i class="bi me-2" th:classappend="${isEdit} ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+                <span th:text="${isEdit} ? 'Chỉnh sửa Đơn hàng' : 'Tạo Đơn hàng mới'">Đơn hàng</span>
+            </h2>
+            <p class="text-muted mb-0">KTO nhập thông số, hệ thống tự động tính kích thước</p>
+        </div>
+        <a th:href="@{/orders}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <form th:action="${isEdit} ? @{/orders/update/{id}(id=${order.id})} : @{/orders/save}"
+          th:object="${order}" method="post" id="orderForm">
+
+        <div class="row g-4">
+            <!-- CỘT TRÁI: FORM -->
+            <div class="col-lg-8">
+
+                <!-- 1. Thông tin khách hàng -->
+                <div class="form-card">
+                    <div class="section-title">
+                        <span class="step-num">0</span>
+                        <span><i class="bi bi-person-vcard me-1"></i>Thông tin khách hàng</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" th:field="*{customerName}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" th:field="*{customerPhone}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Địa chỉ</label>
+                                <input type="text" class="form-control" th:field="*{customerAddress}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Thông số kỹ thuật cửa -->
+                <div class="form-card">
+                    <div class="section-title">
+                        <span class="step-num">1</span>
+                        <span><i class="bi bi-door-closed me-1"></i>Thông số kỹ thuật</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Hệ cửa <span class="text-danger">*</span></label>
+                                <select class="form-select" th:field="*{doorSystem}" id="doorSystem" required>
+                                    <option th:each="s : ${doorSystems}" th:value="${s}" th:text="${s.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Loại cửa <span class="text-danger">*</span></label>
+                                <select class="form-select" th:field="*{doorType}" id="doorType" required>
+                                    <option th:each="t : ${doorTypes}" th:value="${t}" th:text="${t.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Mẫu cánh</label>
+                                <select class="form-select" th:field="*{pattern}">
+                                    <option th:each="p : ${patterns}" th:value="${p}" th:text="${p.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Màu (nhập tay)</label>
+                                <input type="text" class="form-control" th:field="*{colorName}" placeholder="VD: Vân gỗ, Trắng, Xám..." list="colorList">
+                                <datalist id="colorList">
+                                    <option value="Trắng">
+                                    <option value="Vân gỗ">
+                                    <option value="Xám">
+                                    <option value="Đen">
+                                    <option value="Nâu">
+                                    <option value="Vàng">
+                                    <option value="Xanh">
+                                    <option value="Đỏ">
+                                </datalist>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Loại kính</label>
+                                <select class="form-select" th:field="*{glassType}" id="glassType">
+                                    <option th:each="g : ${glassTypes}" th:value="${g}" th:text="${g.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Số bộ cửa</label>
+                                <input type="number" class="form-control" th:field="*{quantity}" id="quantity" min="1" value="1">
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <h6 class="text-primary"><i class="bi bi-rulers me-1"></i>Kích thước ô chờ (mm)</h6>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Rộng (R) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control tech-input" th:field="*{openingWidth}" id="openingWidth" min="100" placeholder="VD: 900">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cao (C) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control tech-input" th:field="*{openingHeight}" id="openingHeight" min="100" placeholder="VD: 2200">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Dày tường (D) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control tech-input" th:field="*{wallThickness}" id="wallThickness" min="50" placeholder="VD: 120">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Phụ phí checkbox nhanh -->
+                <div class="form-card">
+                    <div class="section-title">
+                        <span class="step-num">2</span>
+                        <span><i class="bi bi-plus-circle me-1"></i>Phụ phí nhanh</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-2">
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraCnc}" id="extraCnc"><label class="form-check-label" for="extraCnc">CNC</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraGlassShort}" id="extraGlassShort"><label class="form-check-label" for="extraGlassShort">Ô kính ngắn</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraGlassLong}" id="extraGlassLong"><label class="form-check-label" for="extraGlassLong">Ô kính dài</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraVent}" id="extraVent"><label class="form-check-label" for="extraVent">Ô gió</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraAluminum}" id="extraAluminum"><label class="form-check-label" for="extraAluminum">Chỉ nhôm</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraMolding}" id="extraMolding"><label class="form-check-label" for="extraMolding">Phào nổi</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraPaintDoor}" id="extraPaintDoor"><label class="form-check-label" for="extraPaintDoor">Sơn cửa</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraBo}" id="extraBo"><label class="form-check-label" for="extraBo">Bo</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraMoldingGia}" id="extraMoldingGia"><label class="form-check-label" for="extraMoldingGia">Phào giá</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraLock}" id="extraLock"><label class="form-check-label" for="extraLock">Khóa</label></div></div>
+                            <div class="col-md-3 col-6"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{extraColor}" id="extraColor"><label class="form-check-label" for="extraColor">Phụ phí màu</label></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3b. Phát sinh gia công thêm (multi-select modal) -->
+                <div class="form-card" th:if="${processingFees != null and !processingFees.isEmpty()}">
+                    <div class="section-title">
+                        <span class="step-num">3</span>
+                        <span><i class="bi bi-list-check me-1"></i>Phát sinh gia công thêm</span>
+                    </div>
+                    <div class="section-body">
+                        <p class="text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Chọn các phát sinh gia công bổ sung từ danh mục (multi-select).</p>
+                        <div class="d-flex flex-wrap align-items-center">
+                            <button type="button" class="btn btn-outline-primary" onclick="openFeeModal()">
+                                <i class="bi bi-plus-square me-1"></i>Chọn phát sinh gia công
+                            </button>
+                            <div id="selectedFeesPills" class="ms-3 d-flex flex-wrap flex-grow-1"></div>
+                        </div>
+                        <div data-role="feeSelectedBox" id="feeSelectedBox" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Phụ kiện + Giá bán -->
+                <div class="form-card">
+                    <div class="section-title">
+                        <span class="step-num">4</span>
+                        <span><i class="bi bi-cash-coin me-1"></i>Phụ kiện & Giá bán</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Loại khóa</label>
+                                <input type="text" class="form-control" th:field="*{lockType}" placeholder="VD: Khóa tròn, khóa tay gạt...">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">SL khóa</label>
+                                <input type="number" class="form-control" th:field="*{lockQuantity}" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Loại bản lề</label>
+                                <input type="text" class="form-control" th:field="*{hingeType}" placeholder="VD: Bản lề 4T, bản lề lá...">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">SL bản lề</label>
+                                <input type="number" class="form-control" th:field="*{hingeQuantity}" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">SL ô kính</label>
+                                <input type="number" class="form-control" th:field="*{glassQuantity}" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Giá bán (VND) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control form-control-lg" th:field="*{totalAmount}" min="0" step="1000" placeholder="Nhập giá bán">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Trạng thái</label>
+                                <select class="form-select" th:field="*{status}">
+                                    <option th:each="s : ${statusOptions}" th:value="${s.code}" th:text="${s.name}"></option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Ghi chú</label>
+                                <textarea class="form-control" th:field="*{notes}" rows="2" placeholder="Ghi chú thêm..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 mb-4">
+                    <a th:href="@{/orders}" class="btn btn-secondary px-4">Hủy</a>
+                    <button type="submit" class="btn btn-primary px-5">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <span th:text="${isEdit} ? 'Lưu thay đổi' : 'Tạo Đơn hàng'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: KẾT QUẢ KỸ THUẬT -->
+            <div class="col-lg-4">
+                <div class="result-container">
+                    <div class="result-header">
+                        <i class="bi bi-calculator me-2"></i>KẾT QUẢ KỸ THUẬT
+                    </div>
+                    <div class="result-body">
+                        <div class="alert alert-warning py-2 px-3" id="reviewAlert" style="display:none;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <small>Một số thông số cần KTO <b>Tùy chỉnh</b></small>
+                        </div>
+
+                        <div class="result-subhead">Ô chờ</div>
+                        <div class="result-row"><span class="result-label">Rộng × Cao</span><span class="result-value" id="rs-opening">— × —</span></div>
+                        <div class="result-row"><span class="result-label">Dày tường</span><span class="result-value" id="rs-wall">— mm</span></div>
+                        <div class="result-row"><span class="result-label">Hệ cửa</span><span class="result-value" id="rs-system">Hệ 40</span></div>
+                        <div class="result-row"><span class="result-label">Số bộ</span><span class="result-value" id="rs-quantity">1 bộ</span></div>
+
+                        <div class="result-subhead mt-3">Cánh sản xuất</div>
+                        <div class="result-row"><span class="result-label">Rộng × Cao</span><span class="result-value" id="rs-leaf">— × —</span></div>
+
+                        <div class="result-subhead mt-3">Khuôn</div>
+                        <div class="result-row"><span class="result-label">Khuôn đứng</span><span class="result-value" id="rs-vframe">—</span></div>
+                        <div class="result-row"><span class="result-label">Khuôn ngang</span><span class="result-value" id="rs-hframe">—</span></div>
+                        <div class="result-row"><span class="result-label">Khuôn cao</span><span class="result-value" id="rs-hgframe">—</span></div>
+
+                        <div class="result-subhead mt-3">Nẹp</div>
+                        <div class="result-row"><span class="result-label">Nẹp đứng</span><span class="result-value" id="rs-vtrim">—</span></div>
+                        <div class="result-row"><span class="result-label">SL nẹp đứng</span><span class="result-value" id="rs-vtrimqty">— thanh</span></div>
+                        <div class="result-row"><span class="result-label">Nẹp ngang</span><span class="result-value" id="rs-htrim">—</span></div>
+                        <div class="result-row" id="rs-antigap-row" style="display:none;"><span class="result-label">Nẹp chống hở</span><span class="result-value" id="rs-antigap">—</span></div>
+
+                        <div class="alert alert-info py-2 px-3 mt-3 mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            <small>Kết quả cập nhật <b>tự động</b> mỗi khi bạn thay đổi thông số.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+
+<!-- Modal chọn phát sinh gia công (multi-select) -->
+<div class="modal fade" id="feeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white;">
+                <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Chọn phát sinh gia công</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="feeSearchInput" class="form-control mb-3" placeholder="Tìm kiếm theo tên...">
+                <div id="feeModalList" class="fee-modal-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" id="feeApplyBtn" class="btn btn-primary" onclick="applyFeeSelection()">
+                    <i class="bi bi-check2-circle me-1"></i>Áp dụng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nguồn dữ liệu phát sinh (ẩn) -->
+<div id="feeDataSource" style="display:none;">
+    <div th:each="pf : ${processingFees}">
+        <input type="checkbox" data-role="feeSrc" th:value="${pf.id}"
+               th:data-name="${pf.name}"
+               th:data-group="${pf.code}"
+               th:data-price-text="${pf.defaultUnitPrice != null and pf.defaultUnitPrice.signum() > 0} ? (${#numbers.formatDecimal(pf.defaultUnitPrice, 0, 'POINT', 0, 'COMMA')} + ' ₫/' + ${pf.unit}) : ''">
+    </div>
+</div>
+
+<section layout:fragment="scripts">
+    <script>
+        const inputs = ['openingWidth','openingHeight','wallThickness','doorSystem','doorType','quantity'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.addEventListener('input', recalc); el.addEventListener('change', recalc); }
+        });
+
+        function recalc() {
+            const w = parseInt(document.getElementById('openingWidth').value);
+            const h = parseInt(document.getElementById('openingHeight').value);
+            const d = parseInt(document.getElementById('wallThickness').value);
+            const sys = document.getElementById('doorSystem').value;
+            const type = document.getElementById('doorType').value;
+            const q = parseInt(document.getElementById('quantity').value) || 1;
+            if (!w || !h || !d) {
+                ['rs-opening','rs-wall','rs-leaf','rs-vframe','rs-hframe','rs-hgframe','rs-vtrim','rs-htrim'].forEach(id => document.getElementById(id).textContent = '—');
+                document.getElementById('rs-vtrimqty').textContent = '— thanh';
+                return;
+            }
+            document.getElementById('rs-opening').textContent = w + ' × ' + h;
+            document.getElementById('rs-wall').textContent = d + ' mm';
+            const sysText = sys === 'HE_40' ? 'Hệ 40' : (sys === 'HE_45' ? 'Hệ 45' : (sys === 'HE_50' ? 'Hệ 50' : sys));
+            document.getElementById('rs-system').textContent = sysText;
+            document.getElementById('rs-quantity').textContent = q + ' bộ';
+            const form = new URLSearchParams();
+            form.append('openingWidth', w); form.append('openingHeight', h); form.append('wallThickness', d);
+            form.append('quantity', q); form.append('doorSystem', sys); form.append('doorType', type);
+            fetch('/api/calculate', { method: 'POST', body: form })
+                .then(r => r.json()).then(spec => renderSpec(spec)).catch(err => console.error('Calc error:', err));
+        }
+
+        function renderSpec(s) {
+            document.getElementById('rs-leaf').textContent = (s.leafWidth || '—') + ' × ' + (s.leafHeight || '—');
+            const vf = document.getElementById('rs-vframe');
+            vf.textContent = s.verticalFrame ? s.verticalFrame + ' mm' : '—';
+            vf.className = 'result-value' + (s.verticalFrameCustom ? ' custom' : '');
+            const hf = document.getElementById('rs-hframe');
+            if (s.horizontalFrameCustom) { hf.textContent = 'Tùy chỉnh'; hf.className = 'result-value custom'; }
+            else if (s.horizontalFrame) { hf.textContent = s.horizontalFrame + ' mm'; hf.className = 'result-value'; }
+            else { hf.textContent = '—'; hf.className = 'result-value'; }
+            const hgf = document.getElementById('rs-hgframe');
+            if (s.heightFrameCustom) { hgf.textContent = 'Tùy chỉnh'; hgf.className = 'result-value custom'; }
+            else if (s.heightFrame) { hgf.textContent = s.heightFrame + ' mm'; hgf.className = 'result-value'; }
+            else { hgf.textContent = '—'; hgf.className = 'result-value'; }
+            const vt = document.getElementById('rs-vtrim');
+            if (s.verticalTrimCustom) { vt.textContent = 'Tùy chỉnh'; vt.className = 'result-value custom'; }
+            else if (s.verticalTrim) { vt.textContent = s.verticalTrim + ' mm'; vt.className = 'result-value'; }
+            else { vt.textContent = '—'; vt.className = 'result-value'; }
+            document.getElementById('rs-vtrimqty').textContent = (s.verticalTrimQuantity || 0) + ' thanh';
+            const ht = document.getElementById('rs-htrim');
+            ht.textContent = s.horizontalTrim ? (s.horizontalTrim + ' mm') : 'Không';
+            ht.className = 'result-value';
+            if (s.antiGapTrimQuantity && s.antiGapTrimQuantity > 0) {
+                document.getElementById('rs-antigap-row').style.display = '';
+                document.getElementById('rs-antigap').textContent = s.antiGapTrimQuantity + ' thanh';
+            } else {
+                document.getElementById('rs-antigap-row').style.display = 'none';
+            }
+            document.getElementById('reviewAlert').style.display = s.needsReview ? '' : 'none';
+        }
+        recalc();
+
+        // ============ Multi-select phát sinh gia công ============
+        function openFeeModal() {
+            const selectedIds = Array.from(document.querySelectorAll('#feeSelectedBox [data-role="feeCheckbox"]')).map(c => c.value);
+            renderFeeList('', selectedIds);
+            new bootstrap.Modal(document.getElementById('feeModal')).show();
+        }
+
+        function renderFeeList(filter, selectedIds) {
+            const selSet = new Set(selectedIds || []);
+            const srcItems = Array.from(document.querySelectorAll('#feeDataSource [data-role="feeSrc"]'));
+            const groups = {};
+            srcItems.forEach(it => {
+                const g = it.dataset.group || 'KHÁC';
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(it);
+            });
+            const container = document.getElementById('feeModalList');
+            container.innerHTML = '';
+            const filterLow = (filter || '').toLowerCase();
+            let totalShown = 0;
+            Object.keys(groups).sort().forEach(g => {
+                const filtered = groups[g].filter(it => !filterLow || (it.dataset.name || '').toLowerCase().includes(filterLow));
+                if (filtered.length === 0) return;
+                const head = document.createElement('div');
+                head.className = 'fee-group-head';
+                head.textContent = g;
+                container.appendChild(head);
+                filtered.forEach(srcItem => {
+                    const isChecked = selSet.has(srcItem.value);
+                    const priceTxt = srcItem.dataset.priceText || '';
+                    const div = document.createElement('div');
+                    div.className = 'fee-modal-item d-flex align-items-center' + (isChecked ? ' checked' : '');
+                    div.setAttribute('onclick', 'onFeeItemRowClick(this, event)');
+                    div.innerHTML = '<input class="form-check-input" type="checkbox" data-fee-id="' + srcItem.value
+                        + '" data-fee-name="' + (srcItem.dataset.name || '').replace(/"/g, '&quot;')
+                        + '" ' + (isChecked ? 'checked' : '')
+                        + ' onchange="onFeeItemToggle(this)" onclick="event.stopPropagation()">'
+                        + '<span class="fee-name">' + (srcItem.dataset.name || '') + '</span>'
+                        + (priceTxt ? '<span class="fee-price ms-2">' + priceTxt + '</span>' : '');
+                    container.appendChild(div);
+                    totalShown++;
+                });
+            });
+            if (totalShown === 0) {
+                container.innerHTML = '<div class="text-center text-muted p-4">Không tìm thấy phát sinh nào.</div>';
+            }
+            updateFeeModalCount();
+        }
+
+        function onFeeItemToggle(cb) {
+            const item = cb.closest('.fee-modal-item');
+            if (cb.checked) item.classList.add('checked'); else item.classList.remove('checked');
+            updateFeeModalCount();
+        }
+
+        function onFeeItemRowClick(item, evt) {
+            if (evt.target.tagName === 'INPUT') return;
+            const cb = item.querySelector('input[type=checkbox]');
+            if (!cb) return;
+            cb.checked = !cb.checked;
+            onFeeItemToggle(cb);
+        }
+
+        function updateFeeModalCount() {
+            const c = document.querySelectorAll('#feeModalList input[type=checkbox]:checked').length;
+            document.getElementById('feeApplyBtn').innerHTML = '<i class="bi bi-check2-circle me-1"></i>Áp dụng (' + c + ')';
+        }
+
+        function applyFeeSelection() {
+            const checked = Array.from(document.querySelectorAll('#feeModalList input[type=checkbox]:checked'));
+            const box = document.getElementById('feeSelectedBox');
+            box.innerHTML = '';
+            const srcMap = {};
+            document.querySelectorAll('#feeDataSource [data-role="feeSrc"]').forEach(src => {
+                srcMap[src.value] = { name: src.dataset.name, priceText: src.dataset.priceText };
+            });
+            checked.forEach(cb => {
+                const id = cb.dataset.feeId;
+                const meta = srcMap[id] || { name: cb.dataset.feeName, priceText: '' };
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.setAttribute('data-role', 'feeCheckbox');
+                input.value = id;
+                input.setAttribute('data-name', meta.name || '');
+                box.appendChild(input);
+            });
+            renderSelectedFeesPills();
+            bootstrap.Modal.getInstance(document.getElementById('feeModal')).hide();
+        }
+
+        function renderSelectedFeesPills() {
+            const wrap = document.getElementById('selectedFeesPills');
+            wrap.innerHTML = '';
+            const items = document.querySelectorAll('#feeSelectedBox [data-role="feeCheckbox"]');
+            if (items.length === 0) {
+                wrap.innerHTML = '<span class="text-muted">Chưa chọn phát sinh nào</span>';
+                return;
+            }
+            items.forEach(inp => {
+                const pill = document.createElement('span');
+                pill.className = 'fee-pill';
+                pill.innerHTML = '<i class="bi bi-check2 me-1"></i>' + (inp.getAttribute('data-name') || inp.value);
+                wrap.appendChild(pill);
+            });
+        }
+        renderSelectedFeesPills();
+
+        document.getElementById('feeSearchInput')?.addEventListener('input', function() {
+            const selectedIds = Array.from(document.querySelectorAll('#feeSelectedBox [data-role="feeCheckbox"]')).map(c => c.value);
+            renderFeeList(this.value, selectedIds);
+        });
+    </script>
+</section>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Tổng hợp vật tư - Nhà máy Việt Đức</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .summary-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .section-title { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 10px 18px; border-radius: 10px; margin-bottom: 15px; font-weight: 600; }
+        .qty-table th { background: #f8f9fa; color: #1e3a5f; padding: 10px; }
+        .qty-table td { padding: 8px 10px; }
+        .qty-row td:first-child { font-weight: 600; color: #1e3a5f; }
+        .stat-box { text-align: center; padding: 16px; border-radius: 12px; color: white; }
+        .stat-box .stat-value { font-size: 1.8rem; font-weight: bold; }
+        .stat-box .stat-label { font-size: 0.85rem; opacity: 0.9; }
+        .bg-grad-blue   { background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%); }
+        .bg-grad-green  { background: linear-gradient(135deg, #198754, #146c43); }
+        .bg-grad-orange { background: linear-gradient(135deg, #fd7e14, #dc6500); }
+        .bg-grad-purple { background: linear-gradient(135deg, #6f42c1, #59359a); }
+        .bg-grad-teal   { background: linear-gradient(135deg, #20c997, #0f5132); }
+        .order-pick { background: #f8f9fa; border-radius: 10px; padding: 12px; }
+        .order-pick .form-check { padding: 6px 10px; border-radius: 6px; }
+        .order-pick .form-check:hover { background: #e9ecef; }
+        .group-list { background: white; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .group-list-title { font-weight: 600; color: #1e3a5f; margin-bottom: 6px; font-size: 14px; }
+        .group-list ul { padding-left: 20px; margin: 0; font-size: 13px; }
+        .group-list li { padding: 2px 0; }
+        @media print { .sidebar, .no-print { display: none !important; } }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-box-seam me-2"></i>TỔNG HỢP VẬT TƯ SẢN XUẤT</h2>
+            <p class="text-muted mb-0">Tổng hợp từ các nhóm lệnh SX — cánh, khuôn, nẹp.</p>
+        </div>
+        <div class="d-flex gap-2 no-print">
+            <a th:href="@{/production/orders(ids=${selectedIds})}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Quay lại lệnh SX
+            </a>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer"></i> In
+            </button>
+        </div>
+    </div>
+
+    <!-- BỘ LỌC -->
+    <div class="summary-card no-print">
+        <h6 class="mb-3"><i class="bi bi-funnel me-2"></i>Chọn đơn</h6>
+        <form method="get" th:action="@{/production/material-summary}" class="row g-2">
+            <div class="col-md-10">
+                <div class="order-pick" style="max-height: 160px; overflow-y: auto;">
+                    <div class="row g-2">
+                        <div class="col-md-3" th:each="o : ${allOrders}">
+                            <div class="form-check">
+                                <input class="form-check-input order-chk" type="checkbox" name="ids" th:value="${o.id}"
+                                       th:id="'mo-' + ${o.id}"
+                                       th:checked="${selectedIds != null and #strings.contains(selectedIds, o.id)}">
+                                <label class="form-check-label" th:for="'mo-' + ${o.id}">
+                                    <strong class="text-primary" th:text="${o.orderCode}">DH-001</strong>
+                                    <small class="text-muted d-block" th:text="${o.customerName}">—</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 text-muted" th:if="${#lists.isEmpty(allOrders)}">
+                            Chưa có đơn hàng nào.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-arrow-clockwise"></i> Tổng hợp
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- THỐNG KÊ NHANH -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-2 col-6">
+            <div class="stat-box bg-grad-blue">
+                <div class="stat-value" th:text="${report.sourceOrderCount}">0</div>
+                <div class="stat-label">Số đơn</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-box bg-grad-purple">
+                <div class="stat-value" th:text="${report.totalDoorCount}">0</div>
+                <div class="stat-label">Tổng bộ</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-box bg-grad-orange">
+                <div class="stat-value" th:text="${report.groups.size()}">0</div>
+                <div class="stat-label">Số nhóm</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-box bg-grad-green">
+                <div class="stat-value" th:text="${report.materialSummary?.totalLeaves ?: 0}">0</div>
+                <div class="stat-label">Tổng cánh</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-box bg-grad-teal">
+                <div class="stat-value" th:text="${report.materialSummary != null ? report.materialSummary.totalVerticalFrame : 0}">0</div>
+                <div class="stat-label">Tổng khuôn đứng</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-box bg-grad-teal">
+                <div class="stat-value" th:text="${report.materialSummary != null ? report.materialSummary.totalVerticalTrim : 0}">0</div>
+                <div class="stat-label">Tổng nẹp đứng</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="summary-card">
+                <div class="section-title"><i class="bi bi-bounding-box me-2"></i>KHUÔN CẦN SẢN XUẤT</div>
+
+                <h6 class="text-primary mt-3">Khuôn đứng <small class="text-muted">(2 thanh / bộ)</small></h6>
+                <table class="table table-sm qty-table" th:if="${report.materialSummary?.verticalFrameQty != null and !report.materialSummary.verticalFrameQty.isEmpty()}">
+                    <thead><tr><th>Khuôn (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr class="qty-row" th:each="e : ${report.materialSummary.verticalFrameQty}">
+                            <td th:text="${e.key} + ' mm'">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                        <tr class="qty-row" style="background:#f1f4f9;">
+                            <td><b>Tổng</b></td>
+                            <td class="text-end"><b th:text="${report.materialSummary.totalVerticalFrame}">0</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.materialSummary?.verticalFrameQty == null or report.materialSummary.verticalFrameQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Khuôn ngang <small class="text-muted">(1 thanh / bộ)</small></h6>
+                <table class="table table-sm qty-table" th:if="${report.materialSummary?.horizontalFrameQty != null and !report.materialSummary.horizontalFrameQty.isEmpty()}">
+                    <thead><tr><th>Khuôn (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr class="qty-row" th:each="e : ${report.materialSummary.horizontalFrameQty}">
+                            <td th:text="${e.key} + ' mm'">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                        <tr class="qty-row" style="background:#f1f4f9;">
+                            <td><b>Tổng</b></td>
+                            <td class="text-end"><b th:text="${report.materialSummary.totalHorizontalFrame}">0</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.materialSummary?.horizontalFrameQty == null or report.materialSummary.horizontalFrameQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Khuôn cao <small class="text-muted">(1 thanh / bộ)</small></h6>
+                <table class="table table-sm qty-table" th:if="${report.materialSummary?.heightFrameQty != null and !report.materialSummary.heightFrameQty.isEmpty()}">
+                    <thead><tr><th>Khuôn (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr class="qty-row" th:each="e : ${report.materialSummary.heightFrameQty}">
+                            <td th:text="${e.key} + ' mm'">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                        <tr class="qty-row" style="background:#f1f4f9;">
+                            <td><b>Tổng</b></td>
+                            <td class="text-end"><b th:text="${report.materialSummary.totalHeightFrame}">0</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.materialSummary?.heightFrameQty == null or report.materialSummary.heightFrameQty.isEmpty()}" class="text-muted">Chưa có</p>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="summary-card">
+                <div class="section-title"><i class="bi bi-stripe me-2"></i>NẸP CẦN SẢN XUẤT</div>
+
+                <h6 class="text-primary mt-3">Nẹp đứng <small class="text-muted">(4 thanh / bộ)</small></h6>
+                <table class="table table-sm qty-table" th:if="${report.materialSummary?.verticalTrimQty != null and !report.materialSummary.verticalTrimQty.isEmpty()}">
+                    <thead><tr><th>Nẹp (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr class="qty-row" th:each="e : ${report.materialSummary.verticalTrimQty}">
+                            <td th:text="${e.key} + ' mm'">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                        <tr class="qty-row" style="background:#f1f4f9;">
+                            <td><b>Tổng</b></td>
+                            <td class="text-end"><b th:text="${report.materialSummary.totalVerticalTrim}">0</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.materialSummary?.verticalTrimQty == null or report.materialSummary.verticalTrimQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Nẹp ngang</h6>
+                <table class="table table-sm qty-table" th:if="${report.materialSummary?.horizontalTrimQty != null and !report.materialSummary.horizontalTrimQty.isEmpty()}">
+                    <thead><tr><th>Nẹp (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr class="qty-row" th:each="e : ${report.materialSummary.horizontalTrimQty}">
+                            <td th:text="${e.key} + ' mm'">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                        <tr class="qty-row" style="background:#f1f4f9;">
+                            <td><b>Tổng</b></td>
+                            <td class="text-end"><b th:text="${report.materialSummary.totalHorizontalTrim}">0</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.materialSummary?.horizontalTrimQty == null or report.materialSummary.horizontalTrimQty.isEmpty()}" class="text-muted">Chưa có nẹp ngang</p>
+
+                <h6 class="text-primary mt-3">Nẹp chống hở <small class="text-muted">(bộ gió / cửa đôi)</small></h6>
+                <table class="table table-sm qty-table" th:if="${report.materialSummary?.antiGapTrimQty != null and !report.materialSummary.antiGapTrimQty.isEmpty()}">
+                    <thead><tr><th>Loại</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr class="qty-row">
+                            <td>Nẹp chống hở</td>
+                            <td class="text-end" th:text="${report.materialSummary.totalAntiGapTrim}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.materialSummary?.antiGapTrimQty == null or report.materialSummary.antiGapTrimQty.isEmpty()}" class="text-muted">Chưa có nẹp chống hở</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DANH SÁCH NHÓM ĐANG SX -->
+    <div class="summary-card">
+        <div class="section-title"><i class="bi bi-collection me-2"></i>CHI TIẾT CÁC NHÓM ĐANG SẢN XUẤT</div>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4" th:each="g : ${report.groups}">
+                <div class="group-list">
+                    <div class="group-list-title">
+                        Nhóm #<span th:text="${g.stt}">1</span> ·
+                        <span th:text="${g.specKey.doorSystem?.displayName ?: '—'}">—</span> ·
+                        <span th:text="${g.specKey.doorType?.displayName ?: '—'}">—</span>
+                    </div>
+                    <div class="small text-muted mb-1">
+                        Mẫu: <b th:text="${g.specKey.pattern != null and g.specKey.pattern != ''} ? ${g.specKey.pattern} : '—'">—</b> ·
+                        Màu: <b th:text="${g.specKey.colorName != null and g.specKey.colorName != ''} ? ${g.specKey.colorName} : '—'">—</b>
+                    </div>
+                    <div class="small text-muted mb-1">
+                        Cánh SX: <b th:text="${g.specKey.leafWidth ?: '—'}">—</b> × <b th:text="${g.specKey.leafHeight ?: '—'}">—</b> mm
+                    </div>
+                    <div class="small">
+                        <b class="text-primary" th:text="${g.totalQuantity()}">0</b> bộ gồm:
+                    </div>
+                    <ul>
+                        <li th:each="de : ${g.doors}">
+                            <span class="mono" th:text="${de.orderCode}">—</span>
+                            <small class="text-muted" th:if="${de.itemCode != null}" th:text="'· ' + ${de.itemCode}">—</small>
+                            <span th:if="${de.location != null}">
+                                · <i th:text="${de.location.displayName}">—</i>
+                            </span>
+                            <b class="text-danger" th:text="${de.quantity} + ' bộ'">0 bộ</b>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-12 text-center text-muted py-4" th:if="${#lists.isEmpty(report.groups)}">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                Không có đơn nào trong sản xuất.
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

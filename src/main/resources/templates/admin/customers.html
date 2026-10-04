@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Quản lý Khách hàng</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-people me-2"></i>Quản lý Khách hàng</h2>
+            <p class="text-muted mb-0">Danh sách khách hàng — tự động lưu khi tạo đơn, dùng lại cho lần sau.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerModal" onclick="openAdd()">
+            <i class="bi bi-plus-circle"></i> Thêm khách
+        </button>
+    </div>
+
+    <div class="table-container">
+        <form class="row g-2 mb-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="search" placeholder="Tìm theo tên hoặc SĐT..." th:value="${search}">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100"><i class="bi bi-search"></i> Tìm</button>
+            </div>
+            <div class="col-md-2">
+                <a th:href="@{/admin/customers}" class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã KH</th><th>Họ tên</th><th>SĐT</th><th>Địa chỉ</th>
+                        <th class="text-center">Số đơn</th><th>Cập nhật</th><th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="c : ${customers}">
+                        <td><strong class="text-primary" th:text="${c.customerCode}">KH-0001</strong></td>
+                        <td th:text="${c.name}">Tên</td>
+                        <td th:text="${c.phone}">0900...</td>
+                        <td th:text="${c.address}">--</td>
+                        <td class="text-center"><span class="badge bg-info" th:text="${c.totalOrders} ?: 0">0</span></td>
+                        <td><small th:text="${c.updatedAt != null ? #temporals.format(c.updatedAt, 'dd/MM/yyyy HH:mm') : '-'}">-</small></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary edit-btn" data-bs-toggle="modal" data-bs-target="#customerModal"
+                                    th:attr="data-id=${c.id},
+                                            data-name=${c.name},
+                                            data-phone=${c.phone},
+                                            data-address=${c.address},
+                                            data-notes=${c.notes}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a th:href="@{/admin/customers/delete/{id}(id=${c.id})}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Xoá khách hàng này?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(customers)}">
+                        <td colspan="7" class="text-center text-muted py-4">Chưa có khách hàng nào.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Thêm/Sửa -->
+    <div class="modal fade" id="customerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form class="modal-content" method="post" th:action="@{/admin/customers/save}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">Thêm khách hàng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="cId">
+                    <div class="mb-3">
+                        <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="cName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="phone" id="cPhone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ</label>
+                        <input type="text" class="form-control" name="address" id="cAddress">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ghi chú</label>
+                        <textarea class="form-control" name="notes" id="cNotes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script>
+        function openAdd() {
+            document.getElementById('modalTitle').textContent = 'Thêm khách hàng';
+            document.getElementById('cId').value = '';
+            document.getElementById('cName').value = '';
+            document.getElementById('cPhone').value = '';
+            document.getElementById('cAddress').value = '';
+            document.getElementById('cNotes').value = '';
+        }
+        function openEdit(btn) {
+            document.getElementById('modalTitle').textContent = 'Sửa khách hàng';
+            document.getElementById('cId').value = btn.dataset.id || '';
+            document.getElementById('cName').value = btn.dataset.name || '';
+            document.getElementById('cPhone').value = btn.dataset.phone || '';
+            document.getElementById('cAddress').value = btn.dataset.address || '';
+            document.getElementById('cNotes').value = btn.dataset.notes || '';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEdit(btn));
+            });
+        });
+    </script>
+</section>
+</body>
+</html>

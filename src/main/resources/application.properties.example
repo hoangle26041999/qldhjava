@@ -1,0 +1,30 @@
+###############################################################
+# DEFAULT profile - dùng cho dev/local
+# File production: src/main/resources/application-prod.properties
+# Chạy prod: java -jar app.jar --spring.profiles.active=prod
+#
+# QUAN TRỌNG: KHÔNG commit credentials thật. Copy file này thành
+# application.properties và điền URI thật +o (hoặc dùng biến môi trường).
+###############################################################
+
+# ===== Server =====
+server.port=8080
+spring.application.name=NhaMayNhuaVietDuc
+
+# ===== MongoDB Atlas (dev) - ĐIỀN URI THẬT CỦA BẠN =====
+spring.data.mongodb.uri=mongodb+srv://USER:PASS@CLUSTER.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+spring.data.mongodb.database=nhamay_nhua_vietduc
+spring.data.mongodb.auto-index-creation=true
+
+# ===== Thymeleaf =====
+spring.thymeleaf.cache=false
+spring.thymeleaf.prefix=classpath:/templates/
+spring.thymeleaf.suffix=.html
+
+# ===== Logging =====
+logging.level.com.vietduc=DEBUG
+logging.level.org.springframework.data.mongodb=INFO
+
+# ===== Multipart (upload) =====
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=50MB

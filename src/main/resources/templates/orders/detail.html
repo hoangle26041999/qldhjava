@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title th:text="'Đơn hàng - ' + ${order.orderCode}">Đơn hàng</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        /* Summary hero */
+        .order-hero {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 24px 28px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 22px;
+            display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between;
+        }
+        .order-hero .hero-code { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
+        .order-hero .hero-meta { color: rgba(255,255,255,0.85); font-size: 13px; margin-top: 4px; }
+        .order-hero .hero-stats { display: flex; gap: 28px; flex-wrap: wrap; }
+        .order-hero .hero-stat { text-align: right; }
+        .order-hero .hero-stat .label { color: rgba(255,255,255,0.7); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .order-hero .hero-stat .value { font-weight: 700; font-size: 1.15rem; margin-top: 2px; }
+        .order-hero .hero-stat .value.grand { font-size: 1.6rem; color: #ffd54a; }
+        .order-hero .hero-status { background: rgba(255,255,255,0.18); padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; display: inline-block; }
+
+        /* Cards */
+        .detail-card { background: white; border-radius: 15px; padding: 0; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; overflow: hidden; }
+        .section-title {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white; padding: 14px 22px; font-weight: 600; display: flex; align-items: center;
+            font-size: 15px;
+        }
+        .section-title i { margin-right: 10px; font-size: 18px; }
+        .section-body { padding: 22px; }
+
+        /* Info grid */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+        .info-item .info-label { color: #6c757d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .info-item .info-value { font-weight: 600; color: #1e3a5f; font-size: 15px; word-break: break-word; }
+
+        /* Specs chips */
+        .specs-row { display: flex; flex-wrap: wrap; gap: 10px; }
+        .spec-chip {
+            background: #f1f4f9; border: 1px solid #e3e8ef; border-radius: 10px;
+            padding: 10px 14px; min-width: 130px; flex: 0 0 auto;
+        }
+        .spec-chip .chip-label { font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.4px; }
+        .spec-chip .chip-value { font-weight: 700; color: #1e3a5f; font-size: 15px; margin-top: 2px; }
+
+        /* Fee pills */
+        .fee-pill {
+            display: inline-block; background: #e7f1ff; color: #1e3a5f;
+            border: 1px solid #b8d4f0; border-radius: 16px;
+            padding: 4px 12px; font-size: 13px; font-weight: 500; margin: 2px;
+        }
+        .fee-pill .x { color: #6c757d; margin-left: 6px; font-weight: 700; }
+
+        /* Table */
+        .quote-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .quote-table thead th { background: #f1f4f9; color: #1e3a5f; padding: 12px 10px; font-weight: 600; text-align: center; vertical-align: middle; font-size: 13px; border-bottom: 2px solid #dee2e6; }
+        .quote-table tbody td { padding: 12px 10px; vertical-align: middle; border-bottom: 1px solid #e9ecef; }
+        .quote-table tbody tr:hover { background: #fafbfc; }
+        .row-thumb-img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1.5px solid #dee2e6; }
+        .row-thumb-icon { width: 56px; height: 56px; border-radius: 8px; border: 1.5px dashed #adb5bd; display: flex; align-items: center; justify-content: center; background: #f8f9fa; color: #adb5bd; font-size: 22px; }
+        .row-total { font-weight: 700; color: #d63384; }
+
+        .quote-footer { background: #f8f9fa; padding: 16px 22px; border-top: 2px solid #1e3a5f; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .grand-total { font-size: 1.5rem; font-weight: 700; color: #d63384; }
+
+        .badge.cat-door { background: #cfe2ff; color: #084298; }
+        .badge.cat-accessory { background: #fff3cd; color: #664d03; }
+        .badge.cat-service { background: #d1e7dd; color: #0a3622; }
+
+        /* Inline edit row */
+        tr.li-row.li-editing { background: #fff8e1; }
+        tr.li-row.li-editing td { padding: 6px 8px; vertical-align: middle; }
+        .li-edit-input { width: 100%; padding: 4px 6px; font-size: 13px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; }
+        .li-edit-input:focus { border-color: #2d5a87; outline: none; box-shadow: 0 0 0 0.15rem rgba(45,90,135,.2); }
+        .li-f-size-group { line-height: 1; }
+        .li-f-size-group span { color: #888; font-weight: bold; }
+        .li-system-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; vertical-align: middle; }
+        .sys-40-badge { background: #dbeafe; color: #1d6fdc; border: 1px solid #93c5fd; }
+        .sys-45-badge { background: #fed7aa; color: #c2410c; border: 1px solid #fdba74; }
+        .li-color-badge { background: #fce7f3; color: #9d174d; border: 1px solid #f9a8d4; font-weight: 600; }
+        .system-summary { margin: 12px 16px 18px; padding: 14px 16px; background: #f5f8fc; border: 1px solid #d8e2ec; border-radius: 8px; }
+        .system-summary-title { font-weight: 600; color: #2d5a87; margin-bottom: 12px; font-size: 14px; }
+        .system-summary-row { display: flex; flex-direction: column; gap: 12px; }
+        .sys-group { background: white; border: 1px solid #e3e8ef; border-radius: 6px; overflow: hidden; }
+        .sys-group-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e3e8ef; }
+        .sys-group-badge { padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 13px; color: white; }
+        .sys-group-count { font-size: 13px; color: #495057; }
+        .sys-group-count b { color: #2d5a87; font-size: 15px; }
+        .sys-group-40 { border-left: 4px solid #1d6fdc; }
+        .sys-group-40 .sys-group-badge { background: #1d6fdc; }
+        .sys-group-45 { border-left: 4px solid #d97706; }
+        .sys-group-45 .sys-group-badge { background: #d97706; }
+        .sys-group-other { border-left: 4px solid #6b7280; }
+        .sys-group-other .sys-group-badge { background: #6b7280; }
+        .sys-group-list { list-style: none; padding: 0; margin: 0; }
+        .sys-group-item { display: grid; grid-template-columns: 80px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px dashed #eef1f5; font-size: 13px; }
+        .sys-group-item:first-child { border-top: none; }
+        .sys-group-item .li-code { font-weight: 600; color: #2d5a87; font-family: monospace; }
+        .sys-group-item .li-name { color: #212529; }
+        .sys-group-item .li-size { color: #6c757d; font-size: 12px; }
+        .sys-group-item .li-qty { font-weight: 600; color: #d97706; }
+        .sys-group-item .li-qty b { font-size: 14px; }
+        .sys-group-item .li-qty small { color: #6c757d; font-size: 11px; margin-left: 2px; }
+        .sys-group-empty { padding: 10px 12px; color: #adb5bd; font-style: italic; font-size: 12px; }
+        .sys-grand-total { margin-top: 12px; padding-top: 10px; border-top: 2px solid #2d5a87; text-align: right; font-size: 14px; color: #495057; }
+        .sys-grand-total b { color: #2d5a87; font-size: 18px; }
+
+        @media print {
+            .sidebar, .no-print { display: none !important; }
+            .main-content { padding: 0 !important; }
+            .detail-card { box-shadow: none !important; border: 1px solid #ddd; }
+            .order-hero { box-shadow: none; }
+            .li-actions, #emptyLineItemsMsg button, .section-title .btn { display: none !important; }
+        }
+    </style>
+
+    <!-- Page header -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-3 no-print">
+        <div>
+            <h2><i class="bi bi-receipt me-2"></i>Chi tiết đơn hàng</h2>
+            <p class="text-muted mb-0">Thông tin chi tiết & bảng báo giá</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer"></i> In
+            </button>
+            <a th:href="@{/orders}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    <!-- HERO: mã đơn + trạng thái + tổng tiền -->
+    <div class="order-hero">
+        <div>
+            <div class="hero-code">
+                <i class="bi bi-receipt-cutoff me-2"></i>
+                <span th:text="${order.orderCode}">DH-001</span>
+            </div>
+            <div class="hero-meta">
+                <i class="bi bi-calendar3 me-1"></i>
+                Ngày đặt: <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm')}">—</span>
+            </div>
+            <div class="mt-2">
+                <span class="hero-status" th:text="${order.status ?: '—'}">—</span>
+            </div>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="label">Số dòng cửa</div>
+                <div class="value" th:text="${(order.lineItems != null ? order.lineItems.size() : 0)} + ' dòng'">0 dòng</div>
+            </div>
+            <div class="hero-stat" th:if="${order.productionDeadline != null}">
+                <div class="label">Deadline SX</div>
+                <div class="value" th:text="${#temporals.format(order.productionDeadline, 'dd/MM/yyyy')}">—</div>
+            </div>
+            <div class="hero-stat">
+                <div class="label">Tổng cộng</div>
+                <div class="value grand" th:text="${#numbers.formatDecimal(order.effectiveTotal(), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. THÔNG TIN KHÁCH HÀNG -->
+    <div class="detail-card">
+        <div class="section-title"><i class="bi bi-person-vcard"></i>Thông tin khách hàng</div>
+        <div class="section-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Họ và tên</div>
+                    <div class="info-value" th:text="${order.customerName}">—</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Số điện thoại</div>
+                    <div class="info-value">
+                        <i class="bi bi-telephone me-1 text-primary"></i>
+                        <span th:text="${order.customerPhone}">—</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Địa chỉ</div>
+                    <div class="info-value" th:text="${order.customerAddress != null and order.customerAddress != ''} ? ${order.customerAddress} : '—'">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. THÔNG SỐ KỸ THUẬT (chỉ cho đơn 1-cửa) -->
+    <div class="detail-card" th:if="${order.doorSystem != null or order.lineItems == null or order.lineItems.isEmpty()}">
+        <div class="section-title"><i class="bi bi-rulers"></i>Thông số kỹ thuật</div>
+        <div class="section-body">
+            <div class="specs-row">
+                <div class="spec-chip" th:if="${order.doorSystem != null}">
+                    <div class="chip-label">Hệ cửa</div>
+                    <div class="chip-value" th:text="${order.doorSystem?.displayName}">—</div>
+                </div>
+                <div class="spec-chip" th:if="${order.doorType != null}">
+                    <div class="chip-label">Loại cửa</div>
+                    <div class="chip-value" th:text="${order.doorType?.displayName}">—</div>
+                </div>
+                <div class="spec-chip" th:if="${order.pattern != null}">
+                    <div class="chip-label">Mẫu cánh</div>
+                    <div class="chip-value" th:text="${order.pattern?.displayName}">—</div>
+                </div>
+                <div class="spec-chip" th:if="${order.glassType != null}">
+                    <div class="chip-label">Loại kính</div>
+                    <div class="chip-value" th:text="${order.glassType?.displayName}">—</div>
+                </div>
+                <div class="spec-chip" th:if="${order.colorName != null and order.colorName != ''}">
+                    <div class="chip-label">Màu</div>
+                    <div class="chip-value" th:text="${order.colorName}">—</div>
+                </div>
+                <div class="spec-chip" th:if="${order.openingWidth != null}">
+                    <div class="chip-label">Ô chờ (R×C×D)</div>
+                    <div class="chip-value">
+                        <span th:text="${order.openingWidth}">—</span> ×
+                        <span th:text="${order.openingHeight}">—</span> ×
+                        <span th:text="${order.wallThickness}">—</span>
+                        <small class="text-muted">mm</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. PHỤ KIỆN & PHỤ PHÍ (chỉ cho đơn 1-cửa) -->
+    <div class="detail-card" id="feesCard" style="display:none;">
+        <script>
+            (function() {
+                var o = /*[[${order}]]*/ {};
+                var has = (o.lockType != null && o.lockType !== '') || (o.hingeType != null && o.hingeType !== '')
+                    || o.glassQuantity != null || o.extraCnc || o.extraGlassShort || o.extraGlassLong
+                    || o.extraVent || o.extraAluminum || o.extraMolding || o.extraPaintDoor
+                    || o.extraBo || o.extraMoldingGia || o.extraLock || o.extraColor;
+                if (has) document.getElementById('feesCard').style.display = '';
+            })();
+        </script>
+        <div class="section-title"><i class="bi bi-tools"></i>Phụ kiện & phụ phí</div>
+        <div class="section-body">
+            <div class="info-grid mb-3" id="feesAccessoryGrid" style="display:none;">
+                <script>
+                    (function() {
+                        var o = /*[[${order}]]*/ {};
+                        if ((o.lockType && o.lockType !== '') || o.lockQuantity != null
+                            || (o.hingeType && o.hingeType !== '') || o.hingeQuantity != null
+                            || o.glassQuantity != null) {
+                            document.getElementById('feesAccessoryGrid').style.display = '';
+                        }
+                    })();
+                </script>
+                <div class="info-item" th:if="${order.lockType != null and order.lockType != ''}">
+                    <div class="info-label">Loại khóa / SL</div>
+                    <div class="info-value">
+                        <span th:text="${order.lockType}">—</span>
+                        <span th:if="${order.lockQuantity != null}" class="text-muted"> · <span th:text="${order.lockQuantity}">0</span> cái</span>
+                    </div>
+                </div>
+                <div class="info-item" th:if="${order.hingeType != null and order.hingeType != ''}">
+                    <div class="info-label">Loại bản lề / SL</div>
+                    <div class="info-value">
+                        <span th:text="${order.hingeType}">—</span>
+                        <span th:if="${order.hingeQuantity != null}" class="text-muted"> · <span th:text="${order.hingeQuantity}">0</span> cái</span>
+                    </div>
+                </div>
+                <div class="info-item" th:if="${order.glassQuantity != null}">
+                    <div class="info-label">Số ô kính</div>
+                    <div class="info-value"><span th:text="${order.glassQuantity}">0</span> ô</div>
+                </div>
+            </div>
+            <div>
+                <span class="fee-pill" th:if="${order.extraCnc}">CNC</span>
+                <span class="fee-pill" th:if="${order.extraGlassShort}">Ô kính ngắn</span>
+                <span class="fee-pill" th:if="${order.extraGlassLong}">Ô kính dài</span>
+                <span class="fee-pill" th:if="${order.extraVent}">Ô gió</span>
+                <span class="fee-pill" th:if="${order.extraAluminum}">Chỉ nhôm</span>
+                <span class="fee-pill" th:if="${order.extraMolding}">Phào nổi</span>
+                <span class="fee-pill" th:if="${order.extraPaintDoor}">Sơn cửa</span>
+                <span class="fee-pill" th:if="${order.extraBo}">Bo</span>
+                <span class="fee-pill" th:if="${order.extraMoldingGia}">Phào giá</span>
+                <span class="fee-pill" th:if="${order.extraLock}">Khóa</span>
+                <span class="fee-pill" th:if="${order.extraColor}">Phụ phí màu</span>
+                <span id="noFeeMsg" class="text-muted" style="display:none;">Không có phụ phí</span>
+                <script>
+                    (function() {
+                        var o = /*[[${order}]]*/ {};
+                        if (!(o.extraCnc || o.extraGlassShort || o.extraGlassLong || o.extraVent
+                            || o.extraAluminum || o.extraMolding || o.extraPaintDoor || o.extraBo
+                            || o.extraMoldingGia || o.extraLock || o.extraColor)) {
+                            document.getElementById('noFeeMsg').style.display = '';
+                        }
+                    })();
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. BẢNG BÁO GIÁ -->
+    <div class="detail-card">
+        <div class="section-title d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-table"></i>Bảng báo giá</span>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-light text-dark" id="lineItemCount"
+                      th:text="${order.lineItems != null ? order.lineItems.size() : 0} + ' dòng'">0 dòng</span>
+                <button type="button" class="btn btn-sm btn-light text-primary fw-bold" onclick="addLineItemRow()"
+                        title="Thêm dòng sản phẩm mới">
+                    <i class="bi bi-plus-circle"></i> Thêm dòng
+                </button>
+            </div>
+        </div>
+        <div th:if="${order.lineItems != null and !order.lineItems.isEmpty()}" class="table-responsive px-3 pt-3">
+            <table class="quote-table" id="lineItemsTable">
+                    <colgroup>
+                    <col style="width:55px;"><!-- Ảnh -->
+                    <col style="width:70px;"><!-- Mã -->
+                    <col style="width:100px;"><!-- Loại -->
+                    <col style="width:170px;"><!-- Tên -->
+                    <col style="width:100px;"><!-- KT ô chờ -->
+                    <col style="width:40px;"><!-- SL -->
+                    <col style="width:45px;"><!-- ĐVT -->
+                    <col style="width:90px;"><!-- Đơn giá -->
+                    <!-- Cột gia công: chỉ render các fee có phát sinh trong đơn (usedFees) -->
+                    <col th:each="pf : ${usedFees}" style="width:75px;">
+                    <col style="width:100px;"><!-- Tổng tiền -->
+                    <col style="width:65px;"><!-- Thao tác -->
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="width:55px;vertical-align:middle;">Ảnh</th>
+                        <th rowspan="2" style="vertical-align:middle;">Mã</th>
+                        <th rowspan="2" style="width:100px;vertical-align:middle;">Loại</th>
+                        <th rowspan="2" style="vertical-align:middle;">Tên / Quy cách</th>
+                        <th rowspan="2" style="width:100px;vertical-align:middle;">KT ô chờ (R×C×D)</th>
+                        <th rowspan="2" style="width:50px;vertical-align:middle;">SL</th>
+                        <th rowspan="2" style="width:65px;vertical-align:middle;">ĐVT</th>
+                        <th rowspan="2" style="width:110px;vertical-align:middle;">Đơn giá</th>
+                        <!-- Mỗi cột gia công có header riêng (chỉ các fee có phát sinh trong đơn này) -->
+                        <th th:each="pf : ${usedFees}"
+                            th:data-fee-id="${pf.id}"
+                            th:data-fee-name="${pf.name}"
+                            th:data-fee-unit="${pf.unit}"
+                            th:title="${pf.description}"
+                            th:text="${pf.name}"
+                            rowspan="2"
+                            class="text-end"
+                            style="background:#fff8e1;color:#664d03;font-weight:600;border-bottom:2px solid #f0ad4e;vertical-align:middle;min-width:75px;">
+                            CNC
+                        </th>
+                        <th rowspan="2" style="width:100px;vertical-align:middle;">Tổng tiền</th>
+                        <th rowspan="2" style="width:65px;vertical-align:middle;">Thao tác</th>
+                    </tr>
+                    <tr>
+                        <!-- Row 2 trống vì tất cả header đã gộp vào row 1 với rowspan=2 -->
+                    </tr>
+                </thead>
+                <tbody id="lineItemsBody">
+                    <tr th:each="li,iter : ${order.lineItems}"
+                        th:attr="data-index=${iter.index},
+                                 data-cat=${li.category.name()},
+                                 data-w=${li.openingWidth},
+                                 data-h=${li.openingHeight},
+                                 data-t=${li.wallThickness}"
+                        class="li-row">
+                        <td>
+                            <img th:if="${li.image != null and li.image != ''}" th:src="${li.image}" alt="" class="row-thumb-img">
+                            <div th:unless="${li.image != null and li.image != ''}" class="row-thumb-icon">
+                                <i th:class="${li.category.name() == 'DOOR'} ? 'bi bi-door-closed' : (${li.category.name() == 'ACCESSORY'} ? 'bi bi-gear' : 'bi bi-tools')"></i>
+                            </div>
+                        </td>
+                        <td><strong class="text-primary li-code" th:text="${li.productCode}">—</strong></td>
+                        <td>
+                            <span class="badge li-cat-badge"
+                                  th:classappend="${li.category.name() == 'DOOR'} ? 'cat-door' : (${li.category.name() == 'ACCESSORY'} ? 'cat-accessory' : 'cat-service')"
+                                  th:text="${li.category.name() == 'DOOR'} ? 'Cửa' : (${li.category.name() == 'ACCESSORY'} ? 'Phụ kiện' : 'Dịch vụ')">—</span>
+                        </td>
+                        <td>
+                            <b class="li-name" th:text="${li.productName}">—</b>
+                            <span class="badge li-system-badge ms-1"
+                                  th:if="${li.category.name() == 'DOOR' and li.doorSystem != null}"
+                                  th:classappend="${li.doorSystem.name() == 'HE_40'} ? 'sys-40-badge' : 'sys-45-badge'"
+                                  th:text="${li.doorSystem.displayName}">—</span>
+                            <!-- Mã màu cho từng bộ cửa -->
+                            <span class="badge li-color-badge ms-1"
+                                  th:if="${li.category.name() == 'DOOR' and li.colorCode != null and li.colorCode != ''}"
+                                  th:attr="data-color=${li.colorCode}"
+                                  th:text="'Màu: ' + ${li.colorCode}">Màu: X-01</span>
+                            <small class="text-muted d-block li-accspec" th:if="${li.accessorySpec != null and li.accessorySpec != ''}" th:text="${li.accessorySpec}"></small>
+                            <small class="text-muted d-block li-svcspec" th:if="${li.serviceSpec != null and li.serviceSpec != ''}" th:text="${li.serviceSpec}"></small>
+                        </td>
+                        <td>
+                            <span class="li-size"
+                                  th:if="${li.category.name() == 'DOOR' and li.openingWidth != null}">
+                                <b th:text="${li.openingWidth}">—</b> × <b th:text="${li.openingHeight}">—</b> × <b th:text="${li.wallThickness}">—</b>
+                            </span>
+                            <span th:unless="${li.category.name() == 'DOOR' and li.openingWidth != null}" class="text-muted li-size-empty">—</span>
+                        </td>
+                        <td class="text-center"><b class="li-qty" th:text="${li.quantity != null ? li.quantity : 1}">1</b></td>
+                        <td><span class="badge bg-light text-dark border li-unit" th:text="${li.unit != null} ? ${li.unit} : 'bộ'">bộ</span></td>
+                        <td class="text-end li-price-text">
+                            <span th:if="${li.unitPrice != null}" th:text="${#numbers.formatDecimal(li.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                            <span th:unless="${li.unitPrice != null}" class="text-muted">—</span>
+                        </td>
+                        <!-- Các cột phát sinh gia công: chỉ render các fee có phát sinh trong đơn (usedFees) -->
+                        <td th:each="pf : ${usedFees}"
+                            class="text-end"
+                            th:data-fee-id="${pf.id}"
+                            th:data-fee-name="${pf.name}"
+                            th:data-fee-unit="${pf.unit}"
+                            th:with="amt=${lineItemFeeAmounts != null and lineItemFeeAmounts[li.productCode] != null} ? ${lineItemFeeAmounts[li.productCode][pf.id]} : null">
+                            <b th:if="${amt != null}" class="text-danger"
+                               th:text="${#numbers.formatDecimal(amt, 0, 'COMMA', 0, 'POINT')}">0</b>
+                            <span th:unless="${amt != null}" class="text-muted">—</span>
+                        </td>
+                        <!-- Tổng tiền = Đơn giá × SL + Tổng phụ phí (đã nhân SL) -->
+                        <td class="text-end row-total li-total-text"
+                            th:with="subTotal=${(li.unitPrice != null ? li.unitPrice : 0) * (li.quantity != null ? li.quantity : 1)},
+                                    feeAmt=${li.processingFeeAmount != null ? li.processingFeeAmount : 0},
+                                    grand=${subTotal + feeAmt}">
+                            <b th:text="${(li.unitPrice != null) ? (#numbers.formatDecimal(grand, 0, 'COMMA', 0, 'POINT') + ' đ') : '—'}">0 đ</b>
+                            <small class="d-block text-muted" style="font-size:10px;"
+                                   th:if="${feeAmt != 0}"
+                                   th:text="'gồm ' + ${#numbers.formatDecimal(feeAmt, 0, 'COMMA', 0, 'POINT')} + 'đ phụ phí'">gồm 0đ phụ phí</small>
+                        </td>
+                        <td class="text-center li-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editLineItemRow(this)" title="Sửa">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteLineItemRow(this)" title="Xóa">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:unless="${order.lineItems != null and !order.lineItems.isEmpty()}" class="section-body" id="emptyLineItemsMsg">
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>Đơn này chưa có dòng sản phẩm nào.
+                <button type="button" class="btn btn-sm btn-primary ms-2" onclick="addLineItemRow()">
+                    <i class="bi bi-plus-circle"></i> Thêm dòng đầu tiên
+                </button>
+            </div>
+        </div>
+        <div class="quote-footer" id="lineItemsFooter" th:if="${order.lineItems != null and !order.lineItems.isEmpty()}">
+            <div class="text-muted">
+                Tổng <b id="footerLineCount" th:text="${order.lineItems.size()}">0</b> dòng sản phẩm
+            </div>
+            <div>
+                <span class="me-2 text-muted">TỔNG CỘNG:</span>
+                <span class="grand-total" id="footerGrandTotal"
+                      th:text="${#numbers.formatDecimal(order.effectiveTotal(), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. GHI CHÚ -->
+    <div class="detail-card" th:if="${order.notes != null and order.notes != ''}">
+        <div class="section-title"><i class="bi bi-journal-text"></i>Ghi chú</div>
+        <div class="section-body">
+            <p class="mb-0" style="white-space: pre-wrap;" th:text="${order.notes}">—</p>
+        </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="d-flex justify-content-between align-items-center no-print">
+        <a th:href="@{/orders}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách
+        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger btn-delete" th:attr="data-id=${order.id}">
+                <i class="bi bi-trash"></i> Xóa đơn
+            </button>
+        </div>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const ORDER_ID = /*[[${order.id}]]*/ '';
+        /*]]>*/
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.querySelector('.btn-delete');
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    if (confirm('Xóa đơn này?')) {
+                        window.location.href = '/orders/delete/' + id;
+                    }
+                });
+            }
+        });
+
+        // ============ Inline edit dòng sản phẩm trong bảng báo giá ============
+        function fmt(n) {
+            if (n == null || isNaN(n)) return '—';
+            return Number(n).toLocaleString('vi-VN') + ' đ';
+        }
+        function getRowData(tr) {
+            const cat = tr.dataset.cat || (function() {
+                const c = tr.querySelector('.li-cat-badge');
+                return c.classList.contains('cat-door') ? 'DOOR' : (c.classList.contains('cat-accessory') ? 'ACCESSORY' : 'SERVICE');
+            })();
+            return {
+                productCode: tr.querySelector('.li-code').textContent.trim(),
+                category: cat,
+                productName: tr.querySelector('.li-name').textContent.trim(),
+                accessorySpec: tr.querySelector('.li-accspec')?.textContent.trim() || '',
+                serviceSpec: tr.querySelector('.li-svcspec')?.textContent.trim() || '',
+                openingWidth: tr.dataset.w && tr.dataset.w !== 'null' ? tr.dataset.w : '',
+                openingHeight: tr.dataset.h && tr.dataset.h !== 'null' ? tr.dataset.h : '',
+                wallThickness: tr.dataset.t && tr.dataset.t !== 'null' ? tr.dataset.t : '',
+                quantity: parseInt(tr.querySelector('.li-qty').textContent.trim()) || 1,
+                unit: tr.querySelector('.li-unit').textContent.trim() || 'bộ',
+                unitPrice: (function() {
+                    const t = tr.querySelector('.li-price-text').textContent.trim();
+                    if (t === '—' || t === '') return null;
+                    return parseInt(t.replace(/[^\d]/g, '')) || 0;
+                })(),
+                // Số tiền phụ phí gia công đã nhân SL cho từng fee đang hiển thị (đọc từ data-fee-amount)
+                feeAmounts: (function() {
+                    const map = {};
+                    tr.querySelectorAll('td[data-fee-id]').forEach(td => {
+                        const amt = parseInt((td.textContent || '0').replace(/[^\d-]/g, '')) || 0;
+                        map[td.dataset.feeId] = amt;
+                    });
+                    return map;
+                })()
+            };
+        }
+
+        function sizeInputsHtml(data) {
+            return ''
+                + '<div class="li-f-size-group" style="display:flex;gap:3px;align-items:center;">'
+                +   '<input class="li-edit-input li-f-w" type="number" min="0" step="1" value="' + (data.openingWidth || '') + '" placeholder="R" style="width:55px;" title="Rộng (mm)">'
+                +   '<span>×</span>'
+                +   '<input class="li-edit-input li-f-h" type="number" min="0" step="1" value="' + (data.openingHeight || '') + '" placeholder="C" style="width:55px;" title="Cao (mm)">'
+                +   '<span>×</span>'
+                +   '<input class="li-edit-input li-f-t" type="number" min="0" step="1" value="' + (data.wallThickness || '') + '" placeholder="D" style="width:55px;" title="Dày tường (mm)">'
+                +   '<small class="text-muted">mm</small>'
+                + '</div>';
+        }
+
+        function toggleSizeRequired(tr) {
+            const cat = tr.querySelector('.li-f-cat').value;
+            const grp = tr.querySelector('.li-f-size-group');
+            const req = (cat === 'DOOR');
+            tr.querySelectorAll('.li-f-w, .li-f-h, .li-f-t').forEach(inp => {
+                inp.required = req;
+                if (req) inp.style.background = '#fffbea';
+                else { inp.style.background = '#f0f0f0'; inp.value = ''; }
+            });
+            if (grp) grp.title = req ? 'Bắt buộc (chỉ cho Cửa)' : '';
+        }
+
+        /**
+         * Render ô input phụ phí cho từng cột gia công (CNC, Ghép cánh...).
+         * data.feeAmounts = {feeId: amount đã nhân SL}; data có thể là {} cho row mới.
+         */
+        function feeInputsHtml(data) {
+            // Lấy danh sách feeId đang hiển thị ở header
+            const feeThs = document.querySelectorAll('#lineItemsTable thead th[data-fee-id]');
+            const fees = [];
+            feeThs.forEach(th => fees.push({ id: th.dataset.feeId, name: th.dataset.feeName, unit: th.dataset.feeUnit }));
+            if (fees.length === 0) return '';
+            const map = (data && data.feeAmounts) || {};
+            let html = '';
+            fees.forEach(f => {
+                const v = (map[f.id] != null && !isNaN(map[f.id])) ? map[f.id] : '';
+                html += '<td class="text-end" style="padding:1px;">'
+                      + '<input class="li-edit-input li-fee-amt" '
+                      + 'data-fee-id="' + esc(f.id) + '" '
+                      + 'data-fee-name="' + esc(f.name) + '" '
+                      + 'data-fee-unit="' + esc(f.unit) + '" '
+                      + 'type="number" min="0" step="100" value="' + v + '" placeholder="0" '
+                      + 'style="width:100%;background:#fff8e1;font-weight:600;color:#664d03;border:1px solid #f0ad4e;" '
+                      + 'title="Phụ phí ' + esc(f.name) + ' (đã nhân SL)">'
+                      + '</td>';
+            });
+            return html;
+        }
+
+        /**
+         * Cột "Tổng tiền" preview khi đang sửa: hiển thị = Đơn giá × SL + Σ phụ phí.
+         */
+        function totalPreviewColHtml(empty) {
+            return '<td class="text-end li-f-total-preview" style="background:#fffde7;font-weight:700;color:#1d4ed8;">'
+                 + (empty ? '<span class="text-muted">—</span>' : '0')
+                 + '</td>';
+        }
+
+        // Số cột gia công động (tùy số ProcessingFee active)
+        function feeColCount() {
+            const thead = document.querySelector('#lineItemsTable thead');
+            if (!thead) return 0;
+            const rows = thead.querySelectorAll('tr');
+            if (rows.length < 1) return 0;
+            const row1 = rows[0];
+            // Row 1 (header chính): 8 cột đầu + N cột gia công + Tổng tiền + Thao tác = 10 + N
+            // → feeCols = row1 th count - 10
+            return Math.max(0, row1.querySelectorAll('th').length - 10);
+        }
+
+        function editLineItemRow(btn) {
+            const tr = btn.closest('tr.li-row');
+            if (tr.classList.contains('li-editing')) return;
+            const data = getRowData(tr);
+            const idx = tr.dataset.index;
+            tr.classList.add('li-editing');
+            tr.dataset.originalHtml = tr.innerHTML;
+            const feeCols = feeColCount();
+            const trailingSpan = 1 + feeCols + 1; // Tổng preview + feeCols gia công + Tổng phụ phí
+            tr.innerHTML = ''
+                + '<td><div class="row-thumb-icon"><i class="bi bi-' + (data.category === 'DOOR' ? 'door-closed' : (data.category === 'ACCESSORY' ? 'gear' : 'tools')) + '"></i></div></td>'
+                + '<td><input class="li-edit-input li-f-code" type="text" value="' + esc(data.productCode) + '" style="width:90px;"></td>'
+                + '<td><select class="li-edit-input li-f-cat">'
+                +   '<option value="DOOR"' + (data.category === 'DOOR' ? ' selected' : '') + '>Cửa</option>'
+                +   '<option value="ACCESSORY"' + (data.category === 'ACCESSORY' ? ' selected' : '') + '>Phụ kiện</option>'
+                +   '<option value="SERVICE"' + (data.category === 'SERVICE' ? ' selected' : '') + '>Dịch vụ</option>'
+                + '</select></td>'
+                + '<td><input class="li-edit-input li-f-name" type="text" value="' + esc(data.productName) + '" placeholder="Tên sản phẩm"></td>'
+                + '<td>' + sizeInputsHtml(data) + '</td>'
+                + '<td><input class="li-edit-input li-f-qty" type="number" min="1" value="' + (data.quantity || 1) + '" style="width:60px;"></td>'
+                + '<td><input class="li-edit-input li-f-unit" type="text" value="' + esc(data.unit) + '" style="width:70px;"></td>'
+                + '<td><input class="li-edit-input li-f-price" type="number" min="0" step="100" value="' + (data.unitPrice != null ? data.unitPrice : '') + '" placeholder="0" style="width:100%;background:#fffde7;font-weight:600;color:#b02a37;" title="Đơn giá (sửa thẳng)"></td>'
+                + feeInputsHtml(data)
+                + totalPreviewColHtml()
+                + '<td class="text-center" style="white-space:nowrap;">'
+                + '  <button type="button" class="btn btn-sm btn-success" onclick="saveLineItemRow(this)" title="Lưu"><i class="bi bi-check-lg"></i></button>'
+                + '  <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEditLineItemRow(this)" title="Hủy"><i class="bi bi-x-lg"></i></button>'
+                + '</td>';
+            tr.querySelector('.li-f-qty').addEventListener('input', updateRowPreview);
+            tr.querySelector('.li-f-price').addEventListener('input', updateRowPreview);
+            tr.querySelectorAll('.li-fee-amt').forEach(inp => inp.addEventListener('input', updateRowPreview));
+            tr.querySelector('.li-f-cat').addEventListener('change', () => toggleSizeRequired(tr));
+            toggleSizeRequired(tr);
+            updateRowPreview({ target: tr.querySelector('.li-f-price') });
+        }
+        function updateRowPreview(ev) {
+            const tr = (ev && ev.target ? ev.target.closest('tr') : null) || event.target.closest('tr');
+            const q = parseInt(tr.querySelector('.li-f-qty').value) || 1;
+            const p = parseInt(tr.querySelector('.li-f-price').value) || 0;
+            let feeSum = 0;
+            tr.querySelectorAll('.li-fee-amt').forEach(inp => {
+                feeSum += parseInt(inp.value) || 0;
+            });
+            const sub = q * p;
+            const total = sub + feeSum;
+            const cell = tr.querySelector('.li-f-total-preview');
+            if (cell) {
+                cell.innerHTML = '<span style="font-size:11px;color:#888;">' + fmt(sub) + ' + ' + fmt(feeSum) + '</span><br>'
+                               + '<b style="color:#1d4ed8;">' + fmt(total) + '</b>';
+            }
+        }
+        function cancelEditLineItemRow(btn) {
+            const tr = btn.closest('tr.li-row');
+            if (tr.dataset.originalHtml) {
+                tr.innerHTML = tr.dataset.originalHtml;
+                delete tr.dataset.originalHtml;
+            }
+            tr.classList.remove('li-editing');
+        }
+        function saveLineItemRow(btn) {
+            const tr = btn.closest('tr.li-row');
+            const idx = parseInt(tr.dataset.index);
+            const payload = {
+                productCode: tr.querySelector('.li-f-code').value.trim(),
+                category: tr.querySelector('.li-f-cat').value,
+                productName: tr.querySelector('.li-f-name').value.trim(),
+                accessorySpec: tr.querySelector('.li-f-accspec')?.value.trim() || '',
+                quantity: parseInt(tr.querySelector('.li-f-qty').value) || 1,
+                unit: tr.querySelector('.li-f-unit').value.trim() || 'bộ',
+                unitPrice: parseInt(tr.querySelector('.li-f-price').value) || 0,
+                processingFeeEntries: collectFeeEntries(tr)
+            };
+            if (payload.category === 'DOOR') {
+                const w = tr.querySelector('.li-f-w').value.trim();
+                const h = tr.querySelector('.li-f-h').value.trim();
+                const t = tr.querySelector('.li-f-t').value.trim();
+                if (!w || !h || !t) {
+                    alert('Vui lòng nhập đầy đủ kích thước ô chờ (Rộng × Cao × Dày tường) cho dòng Cửa.');
+                    return;
+                }
+                payload.openingWidth = parseInt(w);
+                payload.openingHeight = parseInt(h);
+                payload.wallThickness = parseInt(t);
+            }
+if (!payload.productName) { alert('Vui lòng nhập tên sản phẩm'); return; }
+                // Mã màu (chỉ áp dụng cho cửa)
+                const colorEl = tr.querySelector('.li-f-color');
+                if (colorEl && colorEl.value) {
+                    payload.colorCode = colorEl.value;
+                }
+                btn.disabled = true;
+                fetch('/api/orders/' + ORDER_ID + '/line-items/' + idx, {
+                    method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(r => {
+                if (!r.ok) return r.text().then(t => { throw new Error(t || 'Lỗi server'); });
+                location.reload();
+            }).catch(err => { alert('Lỗi: ' + err.message); btn.disabled = false; });
+        }
+        function deleteLineItemRow(btn) {
+            const tr = btn.closest('tr.li-row');
+            const idx = parseInt(tr.dataset.index);
+            const name = tr.querySelector('.li-name').textContent.trim() || 'dòng này';
+            if (!confirm('Xóa "' + name + '"?')) return;
+            fetch('/api/orders/' + ORDER_ID + '/line-items/' + idx, { method: 'DELETE' })
+                .then(r => {
+                    if (!r.ok) return r.text().then(t => { throw new Error(t || 'Lỗi server'); });
+                    location.reload();
+                })
+                .catch(err => alert('Lỗi: ' + err.message));
+        }
+        function addLineItemRow() {
+            const tbody = document.getElementById('lineItemsBody');
+            const empty = document.getElementById('emptyLineItemsMsg');
+            if (empty) empty.style.display = 'none';
+            const footer = document.getElementById('lineItemsFooter');
+            if (footer) footer.style.display = '';
+            const tr = document.createElement('tr');
+            tr.className = 'li-row li-editing';
+            tr.dataset.index = '-1';
+            tr.dataset.newRow = '1';
+            const feeCols = feeColCount();
+            const trailingSpan = 1 + feeCols + 1; // Tổng preview + feeCols gia công + Tổng phụ phí
+            tr.innerHTML = ''
+                + '<td><div class="row-thumb-icon"><i class="bi bi-door-closed"></i></div></td>'
+                + '<td><input class="li-edit-input li-f-code" type="text" value="" placeholder="(tự sinh)" style="width:90px;"></td>'
+                + '<td><select class="li-edit-input li-f-cat">'
+                +   '<option value="DOOR" selected>Cửa</option>'
+                +   '<option value="ACCESSORY">Phụ kiện</option>'
+                +   '<option value="SERVICE">Dịch vụ</option>'
+                + '</select></td>'
+                + '<td><input class="li-edit-input li-f-name" type="text" value="" placeholder="Tên sản phẩm" style="margin-bottom:4px;">'
+                + '<br><select class="li-edit-input li-f-color" title="Mã màu cho bộ cửa" style="font-size:11px;padding:1px 4px;width:auto;display:inline-block;">'
+                +   '<option value="">— Mã màu —</option>'
+                +   '<option th:each="c : ${colorPalettes}" th:value="${c.code}" th:text="${c.code + \' - \' + c.name}">V01</option>'
+                + '</select></td>'
+                + '<td>' + sizeInputsHtml({ openingWidth:'', openingHeight:'', wallThickness:'' }) + '</td>'
+                + '<td><input class="li-edit-input li-f-qty" type="number" min="1" value="1" style="width:60px;"></td>'
+                + '<td><input class="li-edit-input li-f-unit" type="text" value="bộ" style="width:70px;"></td>'
+                + '<td><input class="li-edit-input li-f-price" type="number" min="0" step="100" value="" placeholder="0" style="width:100%;background:#fffde7;font-weight:600;color:#b02a37;" title="Đơn giá (sửa thẳng)"></td>'
+                + feeInputsHtml({ feeAmounts: {} })
+                + totalPreviewColHtml(true)
+                + '<td class="text-center" style="white-space:nowrap;">'
+                + '  <button type="button" class="btn btn-sm btn-success" onclick="addLineItemSave(this)" title="Lưu"><i class="bi bi-check-lg"></i></button>'
+                + '  <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest(\'tr\').remove()" title="Hủy"><i class="bi bi-x-lg"></i></button>'
+                + '</td>';
+            tbody.appendChild(tr);
+            tr.querySelector('.li-f-qty').addEventListener('input', updateRowPreview);
+            tr.querySelector('.li-f-price').addEventListener('input', updateRowPreview);
+            tr.querySelectorAll('.li-fee-amt').forEach(inp => inp.addEventListener('input', updateRowPreview));
+            tr.querySelector('.li-f-cat').addEventListener('change', () => toggleSizeRequired(tr));
+            toggleSizeRequired(tr);
+            updateRowPreview({ target: tr.querySelector('.li-f-price') });
+            tr.querySelector('.li-f-name').focus();
+        }
+        function addLineItemSave(btn) {
+            const tr = btn.closest('tr');
+            const payload = {
+                productCode: tr.querySelector('.li-f-code').value.trim() || null,
+                category: tr.querySelector('.li-f-cat').value,
+                productName: tr.querySelector('.li-f-name').value.trim(),
+                accessorySpec: tr.querySelector('.li-f-accspec')?.value.trim() || '',
+                quantity: parseInt(tr.querySelector('.li-f-qty').value) || 1,
+                unit: tr.querySelector('.li-f-unit').value.trim() || 'bộ',
+                unitPrice: parseInt(tr.querySelector('.li-f-price').value) || 0,
+                processingFeeEntries: collectFeeEntries(tr)
+            };
+            if (payload.category === 'DOOR') {
+                const w = tr.querySelector('.li-f-w').value.trim();
+                const h = tr.querySelector('.li-f-h').value.trim();
+                const t = tr.querySelector('.li-f-t').value.trim();
+                if (!w || !h || !t) {
+                    alert('Vui lòng nhập đầy đủ kích thước ô chờ (Rộng × Cao × Dày tường) cho dòng Cửa.');
+                    return;
+                }
+                payload.openingWidth = parseInt(w);
+                payload.openingHeight = parseInt(h);
+                payload.wallThickness = parseInt(t);
+            }
+if (!payload.productName) { alert('Vui lòng nhập tên sản phẩm'); return; }
+                // Mã màu (chỉ áp dụng cho cửa)
+                const colorEl = tr.querySelector('.li-f-color');
+                if (colorEl && colorEl.value) {
+                    payload.colorCode = colorEl.value;
+                }
+                btn.disabled = true;
+                fetch('/api/orders/' + ORDER_ID + '/line-items', {
+                    method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(r => {
+                if (!r.ok) return r.text().then(t => { throw new Error(t || 'Lỗi server'); });
+                location.reload();
+            }).catch(err => { alert('Lỗi: ' + err.message); btn.disabled = false; });
+        }
+        function esc(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        /**
+         * Thu thập các ô phụ phí gia công trong row đang sửa → trả về List<ProcessingFeeEntry>
+         * Chỉ gồm các fee có amount > 0 (mặc định ô trống = bỏ qua).
+         */
+        function collectFeeEntries(tr) {
+            const list = [];
+            tr.querySelectorAll('input.li-fee-amt').forEach(inp => {
+                const v = parseInt(inp.value);
+                if (!inp.value || isNaN(v) || v <= 0) return;
+                list.push({
+                    feeId: inp.dataset.feeId,
+                    feeName: inp.dataset.feeName,
+                    amount: v,
+                    unit: inp.dataset.feeUnit || ''
+                });
+            });
+            return list;
+        }
+    </script>
+</section>
+</body>
+</html>

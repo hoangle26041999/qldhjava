@@ -1,0 +1,810 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Tạo đơn hàng</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .form-container { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .section-title { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 12px 22px; border-radius: 10px; margin-bottom: 18px; font-weight: 600; }
+        .quote-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; }
+        .quote-table thead th { background: #1e3a5f; color: white; padding: 10px 8px; font-weight: 600; text-align: center; vertical-align: middle; font-size: 13px; }
+        .quote-table tbody td { padding: 8px 6px; vertical-align: middle; border-bottom: 1px solid #e9ecef; }
+        .quote-table tbody tr:hover { background: #f8f9fa; }
+        .row-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1.5px solid #dee2e6; cursor: pointer; display: block; }
+        .row-thumb:hover { transform: scale(1.4); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .row-thumb-placeholder { width: 56px; height: 56px; border-radius: 8px; border: 1.5px dashed #adb5bd; display: flex; align-items: center; justify-content: center; background: #f8f9fa; color: #adb5bd; font-size: 22px; cursor: pointer; }
+        .upload-input { display: none; }
+        .num-input { text-align: right; }
+        .row-total { font-weight: 700; color: #d63384; }
+        .quote-footer { background: #f8f9fa; padding: 14px 20px; border-top: 2px solid #1e3a5f; border-radius: 0 0 12px 12px; }
+        .grand-total { font-size: 1.4rem; font-weight: 700; color: #d63384; }
+        .action-bar { position: sticky; bottom: 0; background: white; padding: 12px 20px; border-radius: 12px; box-shadow: 0 -4px 12px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; margin-top: 16px; z-index: 40; }
+        .info-chip { background: #e7f1ff; color: #1e3a5f; padding: 6px 14px; border-radius: 20px; font-size: 14px; margin-right: 8px; }
+        .dropdown-menu { min-width: 220px; }
+        .cust-suggest { position: absolute; background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 240px; overflow-y: auto; z-index: 200; min-width: 320px; }
+        .cust-suggest .item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f3f5; }
+        .cust-suggest .item:hover { background: #f1f7ff; }
+        .cust-suggest .item:last-child { border-bottom: none; }
+        .cust-suggest .item .code { color: #1e3a5f; font-weight: 600; font-size: 12px; }
+        .fee-multiselect { position: relative; }
+        .fee-trigger { min-height: 38px; padding: 4px 8px; border: 1px solid #ced4da; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
+        .fee-trigger .badge { margin-right: 4px; margin-bottom: 2px; }
+        .fee-trigger:hover { border-color: #0d6efd; }
+        .fee-modal-item { padding: 12px 14px; border-bottom: 1px solid #f1f3f5; cursor: pointer; transition: background 0.15s; user-select: none; -webkit-user-select: none; }
+        .fee-modal-item:hover { background: #f8f9fa; }
+        .fee-modal-item:active { background: #e7f1ff; }
+        .fee-modal-item.checked { background: #e7f1ff; }
+        .fee-modal-item .form-check-input { transform: scale(1.4); margin-right: 12px; cursor: pointer; flex-shrink: 0; }
+        .fee-modal-item .fee-name { font-weight: 500; flex: 1; }
+        .fee-modal-item .fee-price { color: #6c757d; font-size: 12px; white-space: nowrap; }
+        .fee-modal-group-title { background: #f8f9fa; padding: 8px 14px; font-weight: 600; color: #1e3a5f; font-size: 13px; text-transform: uppercase; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; }
+        .fee-modal-search { padding: 12px; border-bottom: 1px solid #dee2e6; background: white; }
+        @media (max-width: 768px) { .quote-table { font-size: 12px; } .row-thumb, .row-thumb-placeholder { width: 44px; height: 44px; } }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-plus-circle me-2"></i>Tạo đơn hàng</h2>
+            <p class="text-muted mb-0">Bảng cửa (ảnh, tên, dòng cánh, ô chờ, phát sinh, SL, đơn giá, thành tiền).</p>
+        </div>
+        <a th:href="@{/orders}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Quay lại</a>
+    </div>
+
+    <form id="orderForm" onsubmit="return false;">
+
+        <!-- THÔNG TIN KHÁCH HÀNG -->
+        <div class="form-container">
+            <div class="section-title"><i class="bi bi-person me-2"></i>Thông tin khách hàng
+                <small class="float-end text-white-50">Tự động lưu khi tạo đơn - dùng lại cho lần sau</small>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3" style="position: relative;">
+                    <label class="form-label">Mã KH (tự sinh)</label>
+                    <input type="text" class="form-control bg-light" id="customerCode" readonly placeholder="(tự sinh)">
+                </div>
+                <div class="col-md-3" style="position: relative;">
+                    <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="customerName" required autocomplete="off">
+                    <div id="nameSuggest" class="cust-suggest" style="display:none;"></div>
+                </div>
+                <div class="col-md-3" style="position: relative;">
+                    <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control" id="customerPhone" required autocomplete="off">
+                    <div id="phoneSuggest" class="cust-suggest" style="display:none;"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Địa chỉ</label>
+                    <input type="text" class="form-control" id="customerAddress">
+                </div>
+            </div>
+            <div class="mt-2 small text-muted">
+                <i class="bi bi-info-circle"></i> Gõ tên hoặc SĐT để tìm khách cũ. Nếu chưa có, để trống - hệ thống sẽ tự lưu mỗi khi tạo đơn.
+            </div>
+        </div>
+
+        <!-- BẢNG CỬA -->
+        <div class="form-container">
+            <div class="section-title d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span><i class="bi bi-table me-2"></i>Bảng cửa</span>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-light text-dark border">Ngày <span id="todayDisplay"></span></span>
+                    <span class="badge bg-info text-dark">Khách: <b id="customerNameDisplay">—</b></span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="quote-table" id="doorTable">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">Ảnh</th>
+                            <th>Tên khách + Mã tự sinh</th>
+                            <th style="width:120px;">Dòng cánh</th>
+                            <th style="width:120px;">Mã màu</th>
+                            <th style="width:170px;">K.thước ô chờ (RxCxD)</th>
+                            <th>Phát sinh gia công</th>
+                            <th style="width:60px;">SL</th>
+                            <th style="width:120px;">Đơn giá</th>
+                            <th style="width:120px;">Thành tiền</th>
+                            <th style="width:50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="doorsBody"></tbody>
+                </table>
+            </div>
+            <div class="text-end mt-2">
+                <button type="button" class="btn btn-primary btn-sm" onclick="addDoorLine()">
+                    <i class="bi bi-plus-circle"></i> Thêm dòng cửa
+                </button>
+            </div>
+            <div id="emptyDoors" class="text-center py-3 text-muted">
+                <small><i class="bi bi-info-circle"></i> Chưa có dòng cửa nào. Nhấn "Thêm dòng cửa" để bắt đầu.</small>
+            </div>
+        </div>
+
+        <!-- BẢNG PHỤ KIỆN + DỊCH VỤ -->
+        <div class="form-container">
+            <div class="section-title"><i class="bi bi-gear me-2"></i>Bảng phụ kiện & dịch vụ <small class="text-white-50">(tùy chọn)</small></div>
+            <div class="table-responsive">
+                <table class="quote-table" id="extraTable">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">Ảnh</th>
+                            <th>Loại / Tên sản phẩm</th>
+                            <th>Quy cách</th>
+                            <th style="width:60px;">SL</th>
+                            <th style="width:70px;">ĐVT</th>
+                            <th style="width:120px;">Đơn giá</th>
+                            <th style="width:120px;">Thành tiền</th>
+                            <th style="width:50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="extrasBody"></tbody>
+                </table>
+            </div>
+            <div class="text-end mt-2">
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-warning btn-sm dropdown-toggle text-dark" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-plus-circle"></i> Thêm phụ kiện / dịch vụ
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="addExtraLine('ACCESSORY','LOCK'); return false;"><i class="bi bi-key me-2"></i> Khóa</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="addExtraLine('ACCESSORY','HINGE'); return false;"><i class="bi bi-grip-horizontal me-2"></i> Bản lề</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="addExtraLine('ACCESSORY','GLASS'); return false;"><i class="bi bi-square me-2"></i> Kính</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="addExtraLine('SERVICE','LAP_DAT'); return false;"><i class="bi bi-tools me-2"></i> Lắp đặt</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="addExtraLine('SERVICE','VAN_CHUYEN'); return false;"><i class="bi bi-truck me-2"></i> Vận chuyển</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="addExtraLine('OTHER','OTHER'); return false;">Khác</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div id="emptyExtras" class="text-center py-3 text-muted">
+                <small><i class="bi bi-info-circle"></i> Chưa có phụ kiện/dịch vụ nào. Có thể bỏ qua.</small>
+            </div>
+
+            <div class="quote-footer mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <span class="info-chip"><b id="doorLineCount">0</b> dòng cửa</span>
+                    <span class="info-chip"><b id="extraLineCount">0</b> phụ kiện / DV</span>
+                    <span class="info-chip"><b id="totalDoorQty">0</b> bộ (tổng SL)</span>
+                </div>
+                <div>
+                    <span class="me-2 text-muted">Tổng cộng:</span>
+                    <span class="grand-total" id="grandTotal">0 d</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRẠNG THÁI & GHI CHÚ -->
+        <div class="form-container">
+            <div class="section-title"><i class="bi bi-cash-coin me-2"></i>Trạng thái & Ghi chú</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Trạng thái</label>
+                    <select class="form-select" id="status">
+                        <option th:each="s : ${statusOptions}" th:value="${s.code}" th:text="${s.name}"></option>
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea class="form-control" id="notes" rows="2" placeholder="Ghi chú thêm..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTION BAR -->
+        <div class="action-bar">
+            <div>
+                <span class="info-chip"><b id="btnLineCount">0</b> dòng</span>
+                <span class="info-chip"><b id="btnDoorLineCount">0</b> bộ cửa</span>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/orders}" class="btn btn-secondary px-4"><i class="bi bi-x-circle me-1"></i>Hủy</a>
+                <button type="button" class="btn btn-primary px-5" onclick="submitOrder()"><i class="bi bi-check-circle me-2"></i>Tạo đơn hàng</button>
+            </div>
+        </div>
+    </form>
+
+
+ <!-- DÒNG CỬA -->
+<template id="doorRowTemplate">
+    <tr>
+        <td>
+            <div class="row-thumb-placeholder" data-role="uploadBtn" onclick="triggerUpload(this)" title="Upload ảnh">
+                <i class="bi bi-camera"></i>
+            </div>
+            <img class="row-thumb" data-role="thumb" style="display:none;" onclick="triggerUpload(this)" alt="">
+            <input type="file" class="upload-input" data-role="fileInput" accept="image/*" onchange="uploadImage(this)">
+            <input type="hidden" data-role="imageUrl" value="">
+        </td>
+        <td>
+            <input type="text" class="form-control form-control-sm mb-1" data-role="customerDisplay" readonly tabindex="-1" style="background:#f8f9fa;" placeholder="(Sẽ tự điền từ thông tin khách)">
+            <input type="text" class="form-control form-control-sm" data-role="autoCode" readonly tabindex="-1" style="background:#f8f9fa; color:#1e3a5f; font-weight:600;" placeholder="(Mã tự sinh)">
+        </td>
+        <td>
+            <select class="form-select form-select-sm" data-role="doorSystem" onchange="updateGrandTotal()">
+                <option th:each="ds : ${doorSystemConfigs}" th:value="${ds.id}" th:data-name="${ds.name}"
+                        th:text="${ds.name}" th:selected="${ds.isDefault}"></option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" data-role="colorCode" title="Chọn mã màu cho bộ cửa này">
+                <option value="">— Mã màu —</option>
+                <option th:each="c : ${colorPalettes}"
+                        th:value="${c.code}"
+                        th:text="${c.code + ' - ' + c.name}"
+                        th:data-hex="${c.hexColor}">V01 - Trắng sứ</option>
+            </select>
+        </td>
+        <td>
+            <div class="d-flex gap-1 align-items-center">
+                <input type="number" class="form-control form-control-sm num-input" data-role="openingWidth" placeholder="R" style="width:48px;">
+                <span class="text-muted">×</span>
+                <input type="number" class="form-control form-control-sm num-input" data-role="openingHeight" placeholder="C" style="width:48px;">
+                <span class="text-muted">×</span>
+                <input type="number" class="form-control form-control-sm num-input" data-role="wallThickness" placeholder="D" style="width:48px;">
+            </div>
+        </td>
+        <td>
+            <div class="fee-multiselect">
+                <button type="button" class="btn btn-outline-primary btn-sm w-100" data-role="feeTrigger" onclick="openFeeModal(this)">
+                    <i class="bi bi-list-check me-1"></i>
+                    <span class="text-muted" data-role="feePlaceholder">Chọn phát sinh...</span>
+                </button>
+                <div data-role="feeSelectedBox" style="display:none;"></div>
+            </div>
+        </td>
+        <td><input type="number" class="form-control form-control-sm num-input" data-role="quantity" min="1" value="1" oninput="updateGrandTotal()"></td>
+        <td><input type="number" class="form-control form-control-sm num-input" data-role="unitPrice" min="0" step="1000" placeholder="0" oninput="updateGrandTotal()"></td>
+        <td class="row-total text-end" data-role="totalPrice">0 d</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDoorLine(this)" title="Xóa dòng">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<!-- TEMPLATE DÒNG PHỤ KIỆN / DỊCH VỤ -->
+<template id="extraRowTemplate">
+    <tr>
+        <td>
+            <div class="row-thumb-placeholder" data-role="uploadBtn" onclick="triggerUpload(this)" title="Upload ảnh">
+                <i class="bi bi-camera"></i>
+            </div>
+            <img class="row-thumb" data-role="thumb" style="display:none;" onclick="triggerUpload(this)" alt="">
+            <input type="file" class="upload-input" data-role="fileInput" accept="image/*" onchange="uploadImage(this)">
+            <input type="hidden" data-role="imageUrl" value="">
+        </td>
+        <td>
+            <input type="text" class="form-control form-control-sm" data-role="productName" placeholder="Tên sản phẩm / dịch vụ" oninput="updateGrandTotal()">
+        </td>
+        <td><input type="text" class="form-control form-control-sm" data-role="spec" placeholder="Quy cách / Mô tả" oninput="updateGrandTotal()"></td>
+        <td><input type="number" class="form-control form-control-sm num-input" data-role="quantity" min="1" value="1" oninput="updateGrandTotal()"></td>
+        <td>
+            <select class="form-select form-select-sm" data-role="unit" onchange="updateGrandTotal()">
+                <option value="cái" selected>cái</option>
+                <option value="bộ">bộ</option>
+                <option value="chiếc">chiếc</option>
+                <option value="lần">lần</option>
+                <option value="mét">mét</option>
+            </select>
+        </td>
+        <td><input type="number" class="form-control form-control-sm num-input" data-role="unitPrice" min="0" step="1000" placeholder="0" oninput="updateGrandTotal()"></td>
+        <td class="row-total text-end" data-role="totalPrice">0 d</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExtraLine(this)" title="Xóa dòng">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+</section><section layout:fragment="scripts">
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            document.getElementById('todayDisplay').textContent =
+                String(today.getDate()).padStart(2,'0') + '/' +
+                String(today.getMonth()+1).padStart(2,'0') + '/' + today.getFullYear();
+
+            document.getElementById('customerName').addEventListener('input', function() {
+                document.getElementById('customerNameDisplay').textContent = this.value || '—';
+                syncCustomerToAllRows();
+            });
+            document.getElementById('customerPhone').addEventListener('input', syncCustomerToAllRows);
+            document.getElementById('customerAddress').addEventListener('input', syncCustomerToAllRows);
+
+            setupCustomerAutocomplete();
+
+            addDoorLine();
+        });
+
+        // ============ Autocomplete khách hàng ============
+        let suggestTimer = null;
+        function setupCustomerAutocomplete() {
+            const nameInput = document.getElementById('customerName');
+            const phoneInput = document.getElementById('customerPhone');
+
+            nameInput.addEventListener('input', () => {
+                clearTimeout(suggestTimer);
+                const kw = nameInput.value.trim();
+                if (kw.length < 1) { hideSuggest('nameSuggest'); return; }
+                suggestTimer = setTimeout(() => fetchSuggest(kw, 'nameSuggest', nameInput), 250);
+            });
+            phoneInput.addEventListener('input', () => {
+                clearTimeout(suggestTimer);
+                const kw = phoneInput.value.trim();
+                if (kw.length < 1) { hideSuggest('phoneSuggest'); return; }
+                suggestTimer = setTimeout(() => fetchSuggest(kw, 'phoneSuggest', phoneInput), 250);
+            });
+            phoneInput.addEventListener('blur', () => {
+                const phone = phoneInput.value.trim();
+                if (phone.length >= 8) {
+                    fetch('/api/customers/phone/' + encodeURIComponent(phone))
+                        .then(r => r.json())
+                        .then(c => {
+                            if (c && !c.notFound && c.id) {
+                                document.getElementById('customerCode').value = c.customerCode || '';
+                                if (c.name && !nameInput.value) nameInput.value = c.name;
+                                if (c.address && !document.getElementById('customerAddress').value) document.getElementById('customerAddress').value = c.address;
+                                document.getElementById('customerNameDisplay').textContent = c.name || '—';
+                                syncCustomerToAllRows();
+                            }
+                        });
+                }
+            });
+            document.addEventListener('click', e => {
+                if (!e.target.closest('#nameSuggest') && !e.target.closest('#customerName')) hideSuggest('nameSuggest');
+                if (!e.target.closest('#phoneSuggest') && !e.target.closest('#customerPhone')) hideSuggest('phoneSuggest');
+            });
+        }
+
+        function fetchSuggest(keyword, targetId, inputEl) {
+            fetch('/api/customers/search?keyword=' + encodeURIComponent(keyword))
+                .then(r => r.json())
+                .then(list => showSuggest(list, targetId, inputEl));
+        }
+        function showSuggest(list, targetId, inputEl) {
+            const box = document.getElementById(targetId);
+            if (!list || list.length === 0) { hideSuggest(targetId); return; }
+            box.innerHTML = list.slice(0, 8).map(c => `
+                <div class="item" data-phone="${c.phone || ''}" data-name="${c.name || ''}" data-code="${c.customerCode || ''}" data-address="${c.address || ''}">
+                    <div class="code">${c.customerCode || ''}</div>
+                    <div><strong>${c.name || ''}</strong> — ${c.phone || ''}</div>
+                    <div class="text-muted small">${c.address || ''}</div>
+                </div>
+            `).join('');
+            box.style.display = 'block';
+            const rect = inputEl.getBoundingClientRect();
+            box.style.top = (rect.bottom + window.scrollY) + 'px';
+            box.style.left = (rect.left + window.scrollX) + 'px';
+            box.style.minWidth = rect.width + 'px';
+            box.querySelectorAll('.item').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.getElementById('customerCode').value = item.dataset.code || '';
+                    document.getElementById('customerName').value = item.dataset.name || '';
+                    document.getElementById('customerPhone').value = item.dataset.phone || '';
+                    document.getElementById('customerAddress').value = item.dataset.address || '';
+                    document.getElementById('customerNameDisplay').textContent = item.dataset.name || '—';
+                    syncCustomerToAllRows();
+                    hideSuggest(targetId);
+                });
+            });
+        }
+        function hideSuggest(id) { document.getElementById(id).style.display = 'none'; }
+
+        function syncCustomerToAllRows() {
+            const name = document.getElementById('customerName').value.trim();
+            document.querySelectorAll('#doorsBody tr').forEach((tr, idx) => {
+                const cd = tr.querySelector('[data-role="customerDisplay"]');
+                const ac = tr.querySelector('[data-role="autoCode"]');
+                if (cd) cd.value = name;
+                if (ac) {
+                    const code = document.getElementById('customerCode').value || '(tự sinh)';
+                    ac.value = (code === '(tự sinh)' ? '(tự sinh)' : code) + '-CUA' + String(idx + 1).padStart(2, '0');
+                }
+            });
+        }
+
+        function onFeeChange(el) {
+            const tr = (el && el.closest) ? el.closest('tr') : currentFeeRow;
+            if (!tr) return;
+            const trigger = tr.querySelector('[data-role="feeTrigger"]');
+            const placeholder = trigger.querySelector('[data-role="feePlaceholder"]');
+            const checked = tr.querySelectorAll('[data-role="feeCheckbox"]');
+            if (!placeholder) return;
+            if (checked.length === 0) {
+                placeholder.outerHTML = '<span class="text-muted" data-role="feePlaceholder">Chọn phát sinh...</span>';
+            } else {
+                const labels = Array.from(checked).map(c => c.getAttribute('data-name') || c.value).join(', ');
+                placeholder.outerHTML = '<span class="text-primary fw-semibold" data-role="feePlaceholder"><i class="bi bi-check2-square me-1"></i>' + checked.length + ' mục: ' + labels + '</span>';
+            }
+            updateGrandTotal();
+        }
+
+        function addDoorLine() {
+            const tmpl = document.getElementById('doorRowTemplate');
+            const tr = tmpl.content.querySelector('tr').cloneNode(true);
+            document.getElementById('doorsBody').appendChild(tr);
+            syncCustomerToAllRows();
+            updateStats();
+        }
+        function removeDoorLine(btn) {
+            if (!confirm('Xóa dòng cửa này?')) return;
+            btn.closest('tr').remove();
+            updateGrandTotal();
+            syncCustomerToAllRows();
+        }
+
+        function addExtraLine(category, subType) {
+            const tmpl = document.getElementById('extraRowTemplate');
+            const tr = tmpl.content.querySelector('tr').cloneNode(true);
+            tr.dataset.category = category;
+            tr.dataset.subType = subType;
+            document.getElementById('extrasBody').appendChild(tr);
+            const labels = {
+                'LOCK': 'Khóa', 'HINGE': 'Bản lề', 'GLASS': 'Kính',
+                'LAP_DAT': 'Lắp đặt', 'VAN_CHUYEN': 'Vận chuyển', 'OTHER': ''
+            };
+            const nameInput = tr.querySelector('[data-role="productName"]');
+            if (!nameInput.value && labels[subType]) nameInput.placeholder = labels[subType] + ' — nhập tên cụ thể';
+            updateStats();
+        }
+        function removeExtraLine(btn) {
+            if (!confirm('Xóa dòng này?')) return;
+            btn.closest('tr').remove();
+            updateGrandTotal();
+        }
+
+        function updateGrandTotal() {
+            const allRows = document.querySelectorAll('#doorsBody tr, #extrasBody tr');
+            let grand = 0;
+            allRows.forEach(tr => {
+                const qty = parseInt(tr.querySelector('[data-role="quantity"]')?.value) || 0;
+                const price = parseInt(tr.querySelector('[data-role="unitPrice"]')?.value) || 0;
+                const total = qty * price;
+                const cell = tr.querySelector('[data-role="totalPrice"]');
+                if (cell) cell.textContent = formatMoney(total) + ' d';
+                grand += total;
+            });
+            document.getElementById('grandTotal').textContent = formatMoney(grand) + ' d';
+            updateStats();
+        }
+        function formatMoney(n) { return n ? n.toLocaleString('vi-VN') : '0'; }
+
+        function triggerUpload(el) {
+            const tr = el.closest('tr');
+            tr.querySelector('[data-role="fileInput"]').click();
+        }
+        function uploadImage(input) {
+            if (!input.files || !input.files[0]) return;
+            const tr = input.closest('tr');
+            const form = new FormData();
+            form.append('file', input.files[0]);
+            fetch('/api/upload', { method: 'POST', body: form })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    tr.querySelector('[data-role="imageUrl"]').value = data.url;
+                    const thumb = tr.querySelector('[data-role="thumb"]');
+                    const btn = tr.querySelector('[data-role="uploadBtn"]');
+                    thumb.src = data.url;
+                    thumb.style.display = 'block';
+                    if (btn) btn.style.display = 'none';
+                })
+                .catch(err => alert('Upload lỗi: ' + err.message));
+        }
+
+        function updateStats() {
+            const doorRows = document.querySelectorAll('#doorsBody tr');
+            const extraRows = document.querySelectorAll('#extrasBody tr');
+            let totalDoorQty = 0;
+            doorRows.forEach(tr => {
+                const q = parseInt(tr.querySelector('[data-role="quantity"]')?.value) || 0;
+                totalDoorQty += q;
+            });
+            document.getElementById('doorLineCount').textContent = doorRows.length;
+            document.getElementById('extraLineCount').textContent = extraRows.length;
+            document.getElementById('totalDoorQty').textContent = totalDoorQty;
+            document.getElementById('btnLineCount').textContent = doorRows.length + extraRows.length;
+            document.getElementById('btnDoorLineCount').textContent = totalDoorQty;
+            document.getElementById('emptyDoors').style.display = doorRows.length === 0 ? '' : 'none';
+            document.getElementById('emptyExtras').style.display = extraRows.length === 0 ? '' : 'none';
+        }
+
+        function collectFormData() {
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerPhone = document.getElementById('customerPhone').value.trim();
+            const customerAddress = document.getElementById('customerAddress').value.trim();
+            const status = document.getElementById('status').value;
+            const notes = document.getElementById('notes').value.trim();
+            if (!customerName) return { error: 'Vui lòng nhập tên khách hàng' };
+            if (!customerPhone) return { error: 'Vui lòng nhập số điện thoại' };
+
+            const lineItems = [];
+            let doorIdx = 0;
+            document.querySelectorAll('#doorsBody tr').forEach(tr => {
+                const name = (tr.querySelector('[data-role="customerDisplay"]').value || '').trim();
+                if (!name) return;
+                doorIdx++;
+
+                const sysSel = tr.querySelector('[data-role="doorSystem"]');
+                const sysId = sysSel.value;
+                const sysName = sysSel.options[sysSel.selectedIndex]?.dataset?.name || '';
+                let doorSystemEnum = 'HE_40';
+                if (sysName.includes('45')) doorSystemEnum = 'HE_45';
+                else if (sysName.includes('50')) doorSystemEnum = 'HE_50';
+
+                const feeIds = Array.from(tr.querySelectorAll('[data-role="feeCheckbox"]')).map(c => c.value);
+                const feeNames = Array.from(tr.querySelectorAll('[data-role="feeCheckbox"]')).map(c => c.getAttribute('data-name') || '');
+
+                const item = {
+                    productCode: 'DT' + String(doorIdx).padStart(2, '0'),
+                    category: 'DOOR',
+                    productName: name,
+                    image: tr.querySelector('[data-role="imageUrl"]').value || null,
+                    quantity: parseInt(tr.querySelector('[data-role="quantity"]').value) || 1,
+                    unit: 'bộ',
+                    doorSystem: doorSystemEnum,
+                    colorCode: tr.querySelector('[data-role="colorCode"]').value || null,
+                    openingWidth: parseInt(tr.querySelector('[data-role="openingWidth"]').value) || null,
+                    openingHeight: parseInt(tr.querySelector('[data-role="openingHeight"]').value) || null,
+                    wallThickness: parseInt(tr.querySelector('[data-role="wallThickness"]').value) || null,
+                    unitPrice: parseInt(tr.querySelector('[data-role="unitPrice"]').value) || null,
+                    processingFeeIds: feeIds,
+                    processingFeeNames: feeNames
+                };
+                if (item.unitPrice) item.totalPrice = item.unitPrice * item.quantity;
+                lineItems.push(item);
+            });
+
+            let extraIdx = 0;
+            document.querySelectorAll('#extrasBody tr').forEach(tr => {
+                const name = tr.querySelector('[data-role="productName"]').value.trim();
+                if (!name) return;
+                extraIdx++;
+                const cat = tr.dataset.category || 'ACCESSORY';
+                const sub = tr.dataset.subType || 'OTHER';
+                const item = {
+                    productCode: (cat === 'ACCESSORY' ? 'PK' : 'DV') + String(extraIdx).padStart(2, '0'),
+                    category: cat,
+                    productName: name,
+                    image: tr.querySelector('[data-role="imageUrl"]').value || null,
+                    quantity: parseInt(tr.querySelector('[data-role="quantity"]').value) || 1,
+                    unit: tr.querySelector('[data-role="unit"]').value,
+                    unitPrice: parseInt(tr.querySelector('[data-role="unitPrice"]').value) || null,
+                    spec: tr.querySelector('[data-role="spec"]').value.trim() || null
+                };
+                if (cat === 'ACCESSORY') item.accessoryType = sub;
+                else item.serviceType = sub;
+                if (item.unitPrice) item.totalPrice = item.unitPrice * item.quantity;
+                lineItems.push(item);
+            });
+
+            if (lineItems.length === 0) return { error: 'Vui lòng thêm ít nhất 1 dòng sản phẩm' };
+
+            return {
+                payload: {
+                    customerName, customerPhone, customerAddress, status, notes,
+                    lineItems: lineItems,
+                    totalAmount: lineItems.reduce((s, l) => s + (l.totalPrice || 0), 0)
+                }
+            };
+        }
+
+        function submitOrder() {
+            const result = collectFormData();
+            if (result.error) { alert(result.error); return; }
+            const btn = document.querySelector('button[onclick="submitOrder()"]');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang lưu...';
+            fetch('/orders/save-multi', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(result.payload)
+            })
+            .then(r => { if (!r.ok) return r.json().then(err => Promise.reject(err)); return r.json(); })
+            .then(data => {
+                alert('✓ Tạo đơn ' + data.orderCode + ' thành công!');
+                window.location.href = data.redirect;
+            })
+            .catch(err => { alert('Lỗi: ' + (err.error || JSON.stringify(err))); btn.disabled = false; btn.innerHTML = orig; });
+        }
+
+        const FEE_GROUPS = [
+            {key: 'CNC',        label: 'CNC — Cắt CNC',     icon: 'cpu'},
+            {key: 'GHEP_CANH',  label: 'Ghép cánh',          icon: 'grid-3x3'},
+            {key: 'CHI_SOI',    label: 'Chỉ soi',            icon: 'type-strikethrough'},
+            {key: 'PHAO',       label: 'Phào',               icon: 'bar-chart-steps'},
+            {key: 'OFIX',       label: 'Ô fix',               icon: 'star'},
+            {key: 'LOCK',       label: 'Khóa',                icon: 'key-fill'},
+            {key: 'HINGE',      label: 'Bản lề',              icon: 'gear-fill'},
+            {key: 'GLASS',      label: 'Kính',                icon: 'square-fill'},
+            {key: 'LAP_DAT',    label: 'Lắp đặt',             icon: 'wrench-adjustable'},
+            {key: 'VAN_CHUYEN', label: 'Vận chuyển',          icon: 'truck'},
+            {key: 'OTHER',      label: 'Khác',                icon: 'three-dots'}
+        ];
+        function groupOf(code) {
+            const c = (code || '').toUpperCase();
+            if (c.startsWith('CNC'))       return 'CNC';
+            if (c.startsWith('GHEP'))      return 'GHEP_CANH';
+            if (c.startsWith('CHI') || c.startsWith('SOI')) return 'CHI_SOI';
+            if (c.startsWith('PHAO'))      return 'PHAO';
+            if (c.startsWith('OFIX') || c.startsWith('O_FIX') || c === 'OF') return 'OFIX';
+            if (c.startsWith('LOCK') || c.startsWith('KHOA')) return 'LOCK';
+            if (c.startsWith('HINGE') || c.startsWith('BANLE')) return 'HINGE';
+            if (c.startsWith('GLASS') || c.startsWith('KINH')) return 'GLASS';
+            if (c.startsWith('LAP') || c.startsWith('LAP_DAT')) return 'LAP_DAT';
+            if (c.startsWith('VAN') || c.startsWith('VC')) return 'VAN_CHUYEN';
+            return 'OTHER';
+        }
+        let currentFeeRow = null;
+
+        function openFeeModal(btn) {
+            currentFeeRow = btn.closest('tr');
+            const feeIds = Array.from(currentFeeRow.querySelectorAll('[data-role="feeCheckbox"]:checked')).map(c => c.value);
+            renderFeeList('', feeIds);
+            const modal = new bootstrap.Modal(document.getElementById('feeModal'));
+            modal.show();
+            setTimeout(() => document.getElementById('feeSearchInput').focus(), 400);
+        }
+
+        function renderFeeList(keyword, selectedIds) {
+            const items = Array.from(document.querySelectorAll('#feeDataSource [data-role="feeCheckbox"]'));
+            const filtered = keyword ? items.filter(i => {
+                const name = (i.dataset.name || '').toLowerCase();
+                const code = (i.dataset.group || '').toLowerCase();
+                const kw = keyword.toLowerCase();
+                return name.includes(kw) || code.includes(kw);
+            }) : items;
+
+            const groups = {};
+            filtered.forEach(item => {
+                const g = groupOf(item.dataset.group);
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(item);
+            });
+
+            const container = document.getElementById('feeModalList');
+            container.innerHTML = '';
+            const selSet = new Set(selectedIds);
+            let totalShown = 0;
+
+            FEE_GROUPS.forEach(gInfo => {
+                const g = gInfo.key;
+                if (!groups[g] || groups[g].length === 0) return;
+                const groupTitle = document.createElement('div');
+                groupTitle.className = 'fee-modal-group-title';
+                groupTitle.innerHTML = '<i class="bi bi-' + gInfo.icon + ' me-1"></i>' + gInfo.label
+                    + ' <span class="badge bg-secondary ms-2">' + groups[g].length + '</span>';
+                container.appendChild(groupTitle);
+
+                groups[g].forEach(srcItem => {
+                    const isChecked = selSet.has(srcItem.value);
+                    const priceTxt = srcItem.dataset.priceText || '';
+                    const div = document.createElement('div');
+                    div.className = 'fee-modal-item d-flex align-items-center' + (isChecked ? ' checked' : '');
+                    div.setAttribute('onclick', 'onFeeItemRowClick(this, event)');
+                    div.innerHTML = '<input class="form-check-input" type="checkbox" data-fee-id="' + srcItem.value
+                        + '" data-fee-name="' + (srcItem.dataset.name || '').replace(/"/g, '&quot;')
+                        + '" ' + (isChecked ? 'checked' : '')
+                        + ' onchange="onFeeItemToggle(this)" onclick="event.stopPropagation()">'
+                        + '<span class="fee-name">' + (srcItem.dataset.name || '') + '</span>'
+                        + (priceTxt ? '<span class="fee-price ms-2">' + priceTxt + '</span>' : '');
+                    container.appendChild(div);
+                    totalShown++;
+                });
+            });
+
+            if (totalShown === 0) {
+                container.innerHTML = '<div class="text-center text-muted p-4">'
+                    + '<i class="bi bi-inbox" style="font-size:32px;"></i><br>Không có phát sinh nào'
+                    + (keyword ? ' phù hợp với "' + keyword + '"' : '')
+                    + '<br><a href="/admin/processing-fees" class="btn btn-sm btn-primary mt-2"><i class="bi bi-plus"></i> Thêm phát sinh</a></div>';
+            }
+
+            updateFeeModalCount();
+        }
+
+        function onFeeItemToggle(cb) {
+            const item = cb.closest('.fee-modal-item');
+            if (cb.checked) item.classList.add('checked'); else item.classList.remove('checked');
+            updateFeeModalCount();
+        }
+
+        function onFeeItemRowClick(item, evt) {
+            if (evt.target.tagName === 'INPUT') return;
+            const cb = item.querySelector('input[type=checkbox]');
+            if (!cb) return;
+            cb.checked = !cb.checked;
+            onFeeItemToggle(cb);
+        }
+
+        function updateFeeModalCount() {
+            const c = document.querySelectorAll('#feeModalList input[type=checkbox]:checked').length;
+            document.getElementById('feeSelectedCount').textContent = c;
+            document.getElementById('feeApplyBtn').disabled = false;
+            document.getElementById('feeApplyBtn').innerHTML = '<i class="bi bi-check2-circle me-1"></i>Áp dụng (' + c + ')';
+        }
+
+        function applyFeeSelection() {
+            if (!currentFeeRow) { console.warn('currentFeeRow is null'); return; }
+            const checked = Array.from(document.querySelectorAll('#feeModalList input[type=checkbox]:checked'));
+            const box = currentFeeRow.querySelector('[data-role="feeSelectedBox"]');
+            if (!box) { console.warn('feeSelectedBox not found in row'); return; }
+            box.innerHTML = '';
+            const srcMap = {};
+            document.querySelectorAll('#feeDataSource [data-role="feeCheckbox"]').forEach(src => {
+                srcMap[src.value] = {name: src.dataset.name, priceText: src.dataset.priceText};
+            });
+            checked.forEach(cb => {
+                const id = cb.dataset.feeId;
+                const meta = srcMap[id] || {name: cb.dataset.feeName, priceText: ''};
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.setAttribute('data-role', 'feeCheckbox');
+                input.value = id;
+                input.setAttribute('data-name', meta.name || '');
+                box.appendChild(input);
+            });
+            console.log('Applied ' + checked.length + ' fees to row');
+            onFeeChange();
+            bootstrap.Modal.getInstance(document.getElementById('feeModal')).hide();
+        }
+
+        document.getElementById('feeSearchInput')?.addEventListener('input', function() {
+            const feeIds = Array.from(currentFeeRow.querySelectorAll('[data-role="feeCheckbox"]:checked')).map(c => c.value);
+            renderFeeList(this.value, feeIds);
+        });
+    </script>
+
+
+<!-- MODAL CHỌN PHÁT SINH GIA CÔNG -->
+<div class="modal fade" id="feeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Chọn phát sinh gia công</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="fee-modal-search">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input id="feeSearchInput" type="text" class="form-control" placeholder="Tìm theo tên phát sinh (ví dụ: khóa, kính, lắp đặt...)">
+                    </div>
+                </div>
+                <div id="feeModalList" style="max-height: 480px; overflow-y: auto;"></div>
+                <div th:if="${#lists.isEmpty(processingFees)}" class="text-muted text-center p-4">
+                    Chưa có phát sinh nào.<br><a th:href="@{/admin/processing-fees}" class="btn btn-sm btn-primary mt-2"><i class="bi bi-plus"></i> Thêm ngay</a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">
+                    Đã chọn: <strong id="feeSelectedCount">0</strong> mục
+                </span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" id="feeApplyBtn" class="btn btn-primary" onclick="applyFeeSelection()">
+                    <i class="bi bi-check2-circle me-1"></i>Áp dụng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NGUỒN DỮ LIỆU PHÁT SINH -->
+<div id="feeDataSource" style="display:none;">
+    <div th:each="pf : ${processingFees}">
+        <input type="checkbox" data-role="feeCheckbox" th:value="${pf.id}"
+               th:data-name="${pf.name}"
+               th:data-group="${pf.code}"
+               th:data-price-text="${pf.defaultUnitPrice != null and pf.defaultUnitPrice.signum() > 0} ? (${#numbers.formatDecimal(pf.defaultUnitPrice, 0, 'POINT', 0, 'COMMA')} + ' đ/' + ${pf.unit}) : ''">
+    </div>
+</div>
+</section></body>
+</html>

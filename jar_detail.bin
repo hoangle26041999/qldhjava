@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn hàng - <span th:text="${order.orderCode}">DH-001</span></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f6fa; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .sidebar { background: linear-gradient(180deg, #1e3a5f 0%, #2d5a87 100%); min-height: 100vh; color: white; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.85); padding: 12px 20px; margin: 4px 10px; border-radius: 8px; }
+        .sidebar .nav-link:hover { background: rgba(255,255,255,0.15); color: white; }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
+        .brand-logo { padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .main-content { padding: 25px 30px; }
+
+        /* Page header */
+        .page-header h2 { color: #1e3a5f; font-weight: 700; margin: 0; }
+
+        /* Summary hero */
+        .order-hero {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 24px 28px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 22px;
+            display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between;
+        }
+        .order-hero .hero-code { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
+        .order-hero .hero-meta { color: rgba(255,255,255,0.85); font-size: 13px; margin-top: 4px; }
+        .order-hero .hero-stats { display: flex; gap: 28px; flex-wrap: wrap; }
+        .order-hero .hero-stat { text-align: right; }
+        .order-hero .hero-stat .label { color: rgba(255,255,255,0.7); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .order-hero .hero-stat .value { font-weight: 700; font-size: 1.15rem; margin-top: 2px; }
+        .order-hero .hero-stat .value.grand { font-size: 1.6rem; color: #ffd54a; }
+        .order-hero .hero-status {
+            background: rgba(255,255,255,0.18); padding: 6px 14px; border-radius: 20px;
+            font-weight: 600; font-size: 13px; display: inline-block;
+        }
+
+        /* Cards */
+        .detail-card { background: white; border-radius: 15px; padding: 0; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; overflow: hidden; }
+        .section-title {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white; padding: 14px 22px; font-weight: 600; display: flex; align-items: center;
+            font-size: 15px;
+        }
+        .section-title i { margin-right: 10px; font-size: 18px; }
+        .section-body { padding: 22px; }
+
+        /* Info grid */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+        .info-item .info-label { color: #6c757d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .info-item .info-value { font-weight: 600; color: #1e3a5f; font-size: 15px; word-break: break-word; }
+
+        /* Specs chips */
+        .specs-row { display: flex; flex-wrap: wrap; gap: 10px; }
+        .spec-chip {
+            background: #f1f4f9; border: 1px solid #e3e8ef; border-radius: 10px;
+            padding: 10px 14px; min-width: 130px; flex: 0 0 auto;
+        }
+        .spec-chip .chip-label { font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.4px; }
+        .spec-chip .chip-value { font-weight: 700; color: #1e3a5f; font-size: 15px; margin-top: 2px; }
+
+        /* Fee pills */
+        .fee-pill {
+            display: inline-block; background: #e7f1ff; color: #1e3a5f;
+            border: 1px solid #b8d4f0; border-radius: 16px;
+            padding: 4px 12px; font-size: 13px; font-weight: 500; margin: 2px;
+        }
+        .fee-pill .x { color: #6c757d; margin-left: 6px; font-weight: 700; }
+
+        /* Table */
+        .quote-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .quote-table thead th { background: #f1f4f9; color: #1e3a5f; padding: 12px 10px; font-weight: 600; text-align: center; vertical-align: middle; font-size: 13px; border-bottom: 2px solid #dee2e6; }
+        .quote-table tbody td { padding: 12px 10px; vertical-align: middle; border-bottom: 1px solid #e9ecef; }
+        .quote-table tbody tr:hover { background: #fafbfc; }
+        .row-thumb-img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1.5px solid #dee2e6; }
+        .row-thumb-icon { width: 56px; height: 56px; border-radius: 8px; border: 1.5px dashed #adb5bd; display: flex; align-items: center; justify-content: center; background: #f8f9fa; color: #adb5bd; font-size: 22px; }
+        .row-total { font-weight: 700; color: #d63384; }
+
+        .quote-footer { background: #f8f9fa; padding: 16px 22px; border-top: 2px solid #1e3a5f; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .grand-total { font-size: 1.5rem; font-weight: 700; color: #d63384; }
+
+        .badge.cat-door { background: #cfe2ff; color: #084298; }
+        .badge.cat-accessory { background: #fff3cd; color: #664d03; }
+        .badge.cat-service { background: #d1e7dd; color: #0a3622; }
+
+        @media print {
+            .sidebar, .no-print { display: none !important; }
+            .main-content { padding: 0 !important; }
+            .detail-card { box-shadow: none !important; border: 1px solid #ddd; }
+            .order-hero { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <div th:replace="~{fragments/sidebar :: sidebar(active='orders')}"></div>
+
+        <div class="col-md-10 main-content">
+            <!-- Page header -->
+            <div class="page-header d-flex justify-content-between align-items-center mb-3 no-print">
+                <div>
+                    <h2><i class="bi bi-receipt me-2"></i>Chi tiết đơn hàng</h2>
+                    <p class="text-muted mb-0">Thông tin chi tiết & bảng báo giá</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> In
+                    </button>
+                    <a th:href="@{/orders}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </div>
+
+            <!-- Cảnh báo deadline (TODO: cần bổ sung field warningLevel trong Order) -->
+
+            <!-- HERO: mã đơn + trạng thái + tổng tiền -->
+            <div class="order-hero">
+                <div>
+                    <div class="hero-code">
+                        <i class="bi bi-receipt-cutoff me-2"></i>
+                        <span th:text="${order.orderCode}">DH-001</span>
+                    </div>
+                    <div class="hero-meta">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        Ngày đặt: <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm')}">—</span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="hero-status" th:text="${order.status?.displayName}">—</span>
+                    </div>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="label">Số dòng cửa</div>
+                        <div class="value" th:text="${(order.lineItems != null ? order.lineItems.size() : 0)} + ' dòng'">0 dòng</div>
+                    </div>
+                    <div class="hero-stat" th:if="${order.productionDeadline != null}">
+                        <div class="label">Deadline SX</div>
+                        <div class="value" th:text="${#temporals.format(order.productionDeadline, 'dd/MM/yyyy')}">—</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="label">Tổng cộng</div>
+                        <div class="value grand" th:text="${#numbers.formatDecimal(order.totalAmount ?: order.calculateLineItemsTotal(), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. THÔNG TIN KHÁCH HÀNG -->
+            <div class="detail-card">
+                <div class="section-title"><i class="bi bi-person-vcard"></i>Thông tin khách hàng</div>
+                <div class="section-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Họ và tên</div>
+                            <div class="info-value" th:text="${order.customerName}">—</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Số điện thoại</div>
+                            <div class="info-value">
+                                <i class="bi bi-telephone me-1 text-primary"></i>
+                                <span th:text="${order.customerPhone}">—</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Địa chỉ</div>
+                            <div class="info-value" th:text="${order.customerAddress != null and order.customerAddress != ''} ? ${order.customerAddress} : '—'">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. THÔNG SỐ KỸ THUẬT (chỉ cho đơn 1-cửa) -->
+            <div class="detail-card" th:if="${order.doorSystem != null or order.lineItems == null or order.lineItems.isEmpty()}">
+                <div class="section-title"><i class="bi bi-rulers"></i>Thông số kỹ thuật</div>
+                <div class="section-body">
+                    <div class="specs-row">
+                        <div class="spec-chip" th:if="${order.doorSystem != null}">
+                            <div class="chip-label">Hệ cửa</div>
+                            <div class="chip-value" th:text="${order.doorSystem?.displayName}">—</div>
+                        </div>
+                        <div class="spec-chip" th:if="${order.doorType != null}">
+                            <div class="chip-label">Loại cửa</div>
+                            <div class="chip-value" th:text="${order.doorType?.displayName}">—</div>
+                        </div>
+                        <div class="spec-chip" th:if="${order.pattern != null}">
+                            <div class="chip-label">Mẫu cánh</div>
+                            <div class="chip-value" th:text="${order.pattern?.displayName}">—</div>
+                        </div>
+                        <div class="spec-chip" th:if="${order.glassType != null}">
+                            <div class="chip-label">Loại kính</div>
+                            <div class="chip-value" th:text="${order.glassType?.displayName}">—</div>
+                        </div>
+                        <div class="spec-chip" th:if="${order.colorName != null and order.colorName != ''}">
+                            <div class="chip-label">Màu</div>
+                            <div class="chip-value" th:text="${order.colorName}">—</div>
+                        </div>
+                        <div class="spec-chip" th:if="${order.openingWidth != null}">
+                            <div class="chip-label">Ô chờ (R×C×D)</div>
+                            <div class="chip-value">
+                                <span th:text="${order.openingWidth}">—</span> ×
+                                <span th:text="${order.openingHeight}">—</span> ×
+                                <span th:text="${order.wallThickness}">—</span>
+                                <small class="text-muted">mm</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. PHỤ KIỆN & PHỤ PHÍ (chỉ cho đơn 1-cửa) -->
+            <div class="detail-card" id="feesCard" style="display:none;">
+                <script>
+                    (function() {
+                        var o = /*[[${order}]]*/ {};
+                        var has = (o.lockType != null && o.lockType !== '') || (o.hingeType != null && o.hingeType !== '')
+                            || o.glassQuantity != null || o.extraCnc || o.extraGlassShort || o.extraGlassLong
+                            || o.extraVent || o.extraAluminum || o.extraMolding || o.extraPaintDoor
+                            || o.extraBo || o.extraMoldingGia || o.extraLock || o.extraColor;
+                        if (has) document.getElementById('feesCard').style.display = '';
+                    })();
+                </script>
+                <div class="section-title"><i class="bi bi-tools"></i>Phụ kiện & phụ phí</div>
+                <div class="section-body">
+                    <div class="info-grid mb-3" id="feesAccessoryGrid" style="display:none;">
+                        <script>
+                            (function() {
+                                var o = /*[[${order}]]*/ {};
+                                if ((o.lockType && o.lockType !== '') || o.lockQuantity != null
+                                    || (o.hingeType && o.hingeType !== '') || o.hingeQuantity != null
+                                    || o.glassQuantity != null) {
+                                    document.getElementById('feesAccessoryGrid').style.display = '';
+                                }
+                            })();
+                        </script>
+                        <div class="info-item" th:if="${order.lockType != null and order.lockType != ''}">
+                            <div class="info-label">Loại khóa / SL</div>
+                            <div class="info-value">
+                                <span th:text="${order.lockType}">—</span>
+                                <span th:if="${order.lockQuantity != null}" class="text-muted"> · <span th:text="${order.lockQuantity}">0</span> cái</span>
+                            </div>
+                        </div>
+                        <div class="info-item" th:if="${order.hingeType != null and order.hingeType != ''}">
+                            <div class="info-label">Loại bản lề / SL</div>
+                            <div class="info-value">
+                                <span th:text="${order.hingeType}">—</span>
+                                <span th:if="${order.hingeQuantity != null}" class="text-muted"> · <span th:text="${order.hingeQuantity}">0</span> cái</span>
+                            </div>
+                        </div>
+                        <div class="info-item" th:if="${order.glassQuantity != null}">
+                            <div class="info-label">Số ô kính</div>
+                            <div class="info-value"><span th:text="${order.glassQuantity}">0</span> ô</div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="fee-pill" th:if="${order.extraCnc}">CNC</span>
+                        <span class="fee-pill" th:if="${order.extraGlassShort}">Ô kính ngắn</span>
+                        <span class="fee-pill" th:if="${order.extraGlassLong}">Ô kính dài</span>
+                        <span class="fee-pill" th:if="${order.extraVent}">Ô gió</span>
+                        <span class="fee-pill" th:if="${order.extraAluminum}">Chỉ nhôm</span>
+                        <span class="fee-pill" th:if="${order.extraMolding}">Phào nổi</span>
+                        <span class="fee-pill" th:if="${order.extraPaintDoor}">Sơn cửa</span>
+                        <span class="fee-pill" th:if="${order.extraBo}">Bo</span>
+                        <span class="fee-pill" th:if="${order.extraMoldingGia}">Phào giá</span>
+                        <span class="fee-pill" th:if="${order.extraLock}">Khóa</span>
+                        <span class="fee-pill" th:if="${order.extraColor}">Phụ phí màu</span>
+                        <span id="noFeeMsg" class="text-muted" style="display:none;">Không có phụ phí</span>
+                        <script>
+                            (function() {
+                                var o = /*[[${order}]]*/ {};
+                                if (!(o.extraCnc || o.extraGlassShort || o.extraGlassLong || o.extraVent
+                                    || o.extraAluminum || o.extraMolding || o.extraPaintDoor || o.extraBo
+                                    || o.extraMoldingGia || o.extraLock || o.extraColor)) {
+                                    document.getElementById('noFeeMsg').style.display = '';
+                                }
+                            })();
+                        </script>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. BẢNG BÁO GIÁ -->
+            <div class="detail-card">
+                <div class="section-title d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-table"></i>Bảng báo giá</span>
+                    <span class="badge bg-light text-dark" th:text="${order.lineItems != null ? order.lineItems.size() : 0} + ' dòng'">0 dòng</span>
+                </div>
+                <div th:if="${order.lineItems != null and !order.lineItems.isEmpty()}" class="table-responsive px-3 pt-3">
+                    <table class="quote-table">
+                        <thead>
+                            <tr>
+                                <th style="width:70px;">Ảnh</th>
+                                <th>Mã</th>
+                                <th>Loại</th>
+                                <th>Tên / Quy cách</th>
+                                <th style="width:120px;">KT ô chờ</th>
+                                <th style="width:60px;">SL</th>
+                                <th style="width:70px;">ĐVT</th>
+                                <th style="width:120px;">Đơn giá</th>
+                                <th style="width:130px;">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="li : ${order.lineItems}">
+                                <td>
+                                    <img th:if="${li.image != null and li.image != ''}" th:src="${li.image}" alt="" class="row-thumb-img">
+                                    <div th:unless="${li.image != null and li.image != ''}" class="row-thumb-icon">
+                                        <i th:class="${li.category.name() == 'DOOR'} ? 'bi bi-door-closed' : (${li.category.name() == 'ACCESSORY'} ? 'bi bi-gear' : 'bi bi-tools')"></i>
+                                    </div>
+                                </td>
+                                <td><strong class="text-primary" th:text="${li.productCode}">—</strong></td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${li.category.name() == 'DOOR'} ? 'cat-door' : (${li.category.name() == 'ACCESSORY'} ? 'cat-accessory' : 'cat-service')"
+                                          th:text="${li.category.name() == 'DOOR'} ? 'Cửa' : (${li.category.name() == 'ACCESSORY'} ? 'Phụ kiện' : 'Dịch vụ')">—</span>
+                                </td>
+                                <td>
+                                    <b th:text="${li.productName}">—</b>
+                                    <small class="text-muted d-block" th:if="${li.accessorySpec != null and li.accessorySpec != ''}" th:text="${li.accessorySpec}"></small>
+                                    <small class="text-muted d-block" th:if="${li.serviceSpec != null and li.serviceSpec != ''}" th:text="${li.serviceSpec}"></small>
+                                </td>
+                                <td>
+                                    <span th:if="${li.category.name() == 'DOOR' and li.openingWidth != null}">
+                                        <b th:text="${li.openingWidth}">—</b> × <b th:text="${li.openingHeight}">—</b> × <b th:text="${li.wallThickness}">—</b>
+                                    </span>
+                                    <span th:unless="${li.category.name() == 'DOOR' and li.openingWidth != null}" class="text-muted">—</span>
+                                </td>
+                                <td class="text-center"><b th:text="${li.quantity != null ? li.quantity : 1}">1</b></td>
+                                <td><span class="badge bg-light text-dark border" th:text="${li.unit != null ? li.unit : 'bộ'">bộ</span></td>
+                                <td class="text-end">
+                                    <span th:if="${li.unitPrice != null}" th:text="${#numbers.formatDecimal(li.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                                    <span th:unless="${li.unitPrice != null}" class="text-muted">—</span>
+                                </td>
+                                <td class="text-end row-total">
+                                    <b th:text="${(li.unitPrice != null) ? (#numbers.formatDecimal(li.unitPrice * (li.quantity != null ? li.quantity : 1), 0, 'COMMA', 0, 'POINT') + ' đ') : '—'}">0 đ</b>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:unless="${order.lineItems != null and !order.lineItems.isEmpty()}" class="section-body">
+                    <div class="alert alert-info mb-0"><i class="bi bi-info-circle me-2"></i>Đơn này chưa có dòng sản phẩm nào.</div>
+                </div>
+                <div class="quote-footer" th:if="${order.lineItems != null and !order.lineItems.isEmpty()}">
+                    <div class="text-muted">Tổng <b th:text="${order.lineItems.size()}">0</b> dòng sản phẩm</div>
+                    <div>
+                        <span class="me-2 text-muted">TỔNG CỘNG:</span>
+                        <span class="grand-total" th:text="${#numbers.formatDecimal(order.totalAmount ?: order.calculateLineItemsTotal(), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. GHI CHÚ -->
+            <div class="detail-card" th:if="${order.notes != null and order.notes != ''}">
+                <div class="section-title"><i class="bi bi-journal-text"></i>Ghi chú</div>
+                <div class="section-body">
+                    <p class="mb-0" style="white-space: pre-wrap;" th:text="${order.notes}">—</p>
+                </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="d-flex justify-content-between align-items-center no-print">
+                <a th:href="@{/orders}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                </a>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/orders/edit/{id}(id=${order.id})}" class="btn btn-primary">
+                        <i class="bi bi-pencil-square"></i> Sửa đơn
+                    </a>
+                    <button class="btn btn-outline-danger btn-delete" th:attr="data-id=${order.id}">
+                        <i class="bi bi-trash"></i> Xóa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.querySelector('.btn-delete');
+        if (btn) {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                if (confirm('Xóa đơn này?')) {
+                    window.location.href = '/orders/delete/' + id;
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

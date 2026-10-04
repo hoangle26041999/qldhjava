@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Tổng hợp Sản xuất - Nhà máy Việt Đức</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .summary-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .section-title {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .stat-box { text-align: center; padding: 18px; border-radius: 12px; background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%); color: white; }
+        .stat-box .stat-value { font-size: 2rem; font-weight: bold; }
+        .stat-box .stat-label { font-size: 0.85rem; opacity: 0.9; }
+        .qty-table th { background: #f8f9fa; color: #1e3a5f; }
+        .qty-table td, .qty-table th { padding: 10px; }
+        .cat-pill { display: inline-block; padding: 6px 14px; border-radius: 20px; background: #e7f1ff; color: #1e3a5f; margin: 3px; }
+        .cat-pill b { color: #d63384; }
+        @media print { .sidebar, .no-print { display: none !important; } }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-clipboard-data me-2"></i>TỔNG HỢP SẢN XUẤT</h2>
+            <p class="text-muted mb-0">Cộng dồn vật tư từ nhiều đơn cho nhà máy</p>
+        </div>
+        <button class="btn btn-outline-primary no-print" onclick="window.print()">
+            <i class="bi bi-printer"></i> In báo cáo
+        </button>
+    </div>
+
+    <!-- BỘ LỌC -->
+    <div class="summary-card no-print">
+        <form method="get" th:action="@{/production/summary}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Từ ngày</label>
+                <input type="date" class="form-control" name="from" th:value="${from}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Đến ngày</label>
+                <input type="date" class="form-control" name="to" th:value="${to}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel"></i> Lọc theo ngày
+                </button>
+            </div>
+            <div class="col-md-3 text-end">
+                <a th:href="@{/production/summary}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+        </form>
+        <hr>
+        <p class="mb-0">
+            <i class="bi bi-info-circle"></i>
+            Đang tổng hợp <b th:text="${report.orderCount}">0</b> đơn.
+            Mặc định lấy tất cả đơn chưa hủy.
+        </p>
+    </div>
+
+    <!-- THỐNG KÊ TỔNG -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3 col-6">
+            <div class="stat-box">
+                <div class="stat-value" th:text="${report.orderCount}">0</div>
+                <div class="stat-label">Số đơn</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-box" style="background: linear-gradient(135deg, #198754, #146c43);">
+                <div class="stat-value" th:text="${report.totalLeaves}">0</div>
+                <div class="stat-label">Tổng cánh</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-box" style="background: linear-gradient(135deg, #fd7e14, #dc6500);">
+                <div class="stat-value" th:text="${#numbers.formatDecimal(report.totalAmount ?: 0, 0, 'COMMA', 0, 'POINT')}">0</div>
+                <div class="stat-label">Tổng giá bán (đ)</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-box" style="background: linear-gradient(135deg, #6f42c1, #59359a);">
+                <div class="stat-value" th:text="${report.countBySystem?.size()} ?: 0">0</div>
+                <div class="stat-label">Số loại hệ</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- KHUÔN + NẸP -->
+        <div class="col-lg-6">
+            <div class="summary-card">
+                <div class="section-title"><i class="bi bi-bounding-box me-2"></i>KHUÔN & NẸP CẦN SẢN XUẤT</div>
+
+                <h6 class="text-primary mt-3">Khuôn đứng</h6>
+                <table class="table table-sm qty-table" th:if="${report.verticalFrameQty != null and !report.verticalFrameQty.isEmpty()}">
+                    <thead><tr><th>Khuôn (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr th:each="e : ${report.verticalFrameQty}">
+                            <td th:text="${e.key}">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.verticalFrameQty == null or report.verticalFrameQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Khuôn ngang</h6>
+                <table class="table table-sm qty-table" th:if="${report.horizontalFrameQty != null and !report.horizontalFrameQty.isEmpty()}">
+                    <thead><tr><th>Khuôn (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr th:each="e : ${report.horizontalFrameQty}">
+                            <td th:text="${e.key}">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.horizontalFrameQty == null or report.horizontalFrameQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Khuôn cao</h6>
+                <table class="table table-sm qty-table" th:if="${report.heightFrameQty != null and !report.heightFrameQty.isEmpty()}">
+                    <thead><tr><th>Khuôn (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr th:each="e : ${report.heightFrameQty}">
+                            <td th:text="${e.key}">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.heightFrameQty == null or report.heightFrameQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Nẹp đứng</h6>
+                <table class="table table-sm qty-table" th:if="${report.verticalTrimQty != null and !report.verticalTrimQty.isEmpty()}">
+                    <thead><tr><th>Nẹp (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr th:each="e : ${report.verticalTrimQty}">
+                            <td th:text="${e.key}">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.verticalTrimQty == null or report.verticalTrimQty.isEmpty()}" class="text-muted">Chưa có</p>
+
+                <h6 class="text-primary mt-3">Nẹp ngang</h6>
+                <table class="table table-sm qty-table" th:if="${report.horizontalTrimQty != null and !report.horizontalTrimQty.isEmpty()}">
+                    <thead><tr><th>Nẹp (mm)</th><th class="text-end">Số thanh</th></tr></thead>
+                    <tbody>
+                        <tr th:each="e : ${report.horizontalTrimQty}">
+                            <td th:text="${e.key}">—</td>
+                            <td class="text-end" th:text="${e.value}">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${report.horizontalTrimQty == null or report.horizontalTrimQty.isEmpty()}" class="text-muted">Chưa có nẹp ngang</p>
+            </div>
+        </div>
+
+        <!-- PHÂN LOẠI -->
+        <div class="col-lg-6">
+            <div class="summary-card">
+                <div class="section-title"><i class="bi bi-tags me-2"></i>PHÂN LOẠI</div>
+
+                <h6 class="text-primary mt-3">Theo hệ</h6>
+                <div>
+                    <span class="cat-pill" th:each="e : ${report.countBySystem}">
+                        <span th:text="${e.key}">—</span>: <b th:text="${e.value}">0</b> đơn
+                    </span>
+                    <p th:if="${report.countBySystem == null or report.countBySystem.isEmpty()}" class="text-muted">Chưa có</p>
+                </div>
+
+                <h6 class="text-primary mt-3">Theo loại cửa</h6>
+                <div>
+                    <span class="cat-pill" th:each="e : ${report.countByDoorType}">
+                        <span th:text="${e.key}">—</span>: <b th:text="${e.value}">0</b> đơn
+                    </span>
+                    <p th:if="${report.countByDoorType == null or report.countByDoorType.isEmpty()}" class="text-muted">Chưa có</p>
+                </div>
+
+                <h6 class="text-primary mt-3">Theo mẫu</h6>
+                <div>
+                    <span class="cat-pill" th:each="e : ${report.countByPattern}">
+                        <span th:text="${e.key}">—</span>: <b th:text="${e.value}">0</b> đơn
+                    </span>
+                    <p th:if="${report.countByPattern == null or report.countByPattern.isEmpty()}" class="text-muted">Chưa có</p>
+                </div>
+
+                <h6 class="text-primary mt-3">Theo màu</h6>
+                <div>
+                    <span class="cat-pill" th:each="e : ${report.countByColor}">
+                        <span th:text="${e.key}">—</span>: <b th:text="${e.value}">0</b> đơn
+                    </span>
+                    <p th:if="${report.countByColor == null or report.countByColor.isEmpty()}" class="text-muted">Chưa có</p>
+                </div>
+            </div>
+
+            <!-- Danh sách đơn đã chọn -->
+            <div class="summary-card">
+                <div class="section-title"><i class="bi bi-list-ul me-2"></i>ĐƠN ĐÃ CHỌN</div>
+                <table class="table table-sm qty-table" th:if="${orders != null and !orders.isEmpty()}">
+                    <thead><tr><th>Mã đơn</th><th>Khách</th><th>Cánh</th><th>Khuôn đứng</th></tr></thead>
+                    <tbody>
+                        <tr th:each="o : ${orders}">
+                            <td><a th:href="@{/orders/detail/{id}(id=${o.id})}" th:text="${o.orderCode}">DH-001</a></td>
+                            <td th:text="${o.customerName}">—</td>
+                            <td>
+                                <span th:text="${o.leafWidth}">—</span> ×
+                                <span th:text="${o.leafHeight}">—</span>
+                            </td>
+                            <td th:text="${o.verticalFrame} + ' mm'">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${orders == null or orders.isEmpty()}" class="text-muted">Chưa chọn đơn nào</p>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

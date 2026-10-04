@@ -1,0 +1,35 @@
+###############################################################
+# PRODUCTION profile - cho server thật (VPS)
+# Dạng: java -jar app.jar --spring.profiles.active=prod
+#
+# AN TOÀN: File này KHÔNG commit MongoDB URI thật.
+# Thay MONGO_URI_PASS_... bằng biến môi trường khi deploy:
+#   export MONGODB_URI_PROD="mongodb+srv://real_user:real_pass@..."
+#   java -jar app.jar --spring.profiles.active=prod
+###############################################################
+
+# ===== Server =====
+server.port=${SERVER_PORT:8080}
+server.servlet.session.timeout=2h
+server.servlet.session.cookie.http-only=true
+server.servlet.session.cookie.secure=true
+server.servlet.session.cookie.same-site=lax
+
+# ===== MongoDB (override qua env) =====
+spring.data.mongodb.uri=${MONGODB_URI_PROD:mongodb+srv://USER:PASS@CLUSTER.mongodb.net/nhamay_nhua_vietduc?retryWrites=true&w=majority}
+spring.data.mongodb.database=nhamay_nhua_vietduc
+spring.data.mongodb.auto-index-creation=true
+
+# ===== Thymeleaf (prod) =====
+spring.thymeleaf.cache=true
+spring.thymeleaf.prefix=classpath:/templates/
+spring.thymeleaf.suffix=.html
+
+# ===== Logging (prod) =====
+logging.level.com.vietduc=INFO
+logging.level.org.springframework.data.mongodb=INFO
+logging.level.org.springframework=WARN
+
+# ===== Multipart (upload) =====
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=50MB

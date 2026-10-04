@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Lệnh sản xuất - Nhà máy Việt Đức</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .summary-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .section-title { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 10px 18px; border-radius: 10px; margin-bottom: 15px; font-weight: 600; }
+        .stat-box { text-align: center; padding: 16px; border-radius: 12px; color: white; }
+        .stat-box .stat-value { font-size: 1.8rem; font-weight: bold; }
+        .stat-box .stat-label { font-size: 0.85rem; opacity: 0.9; }
+        .bg-grad-blue   { background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%); }
+        .bg-grad-green  { background: linear-gradient(135deg, #198754, #146c43); }
+        .bg-grad-orange { background: linear-gradient(135deg, #fd7e14, #dc6500); }
+        .bg-grad-purple { background: linear-gradient(135deg, #6f42c1, #59359a); }
+
+        .prod-table { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06); padding: 0 0 16px 0; }
+        .prod-table .group-block { padding: 0 16px; margin-top: 18px; }
+        .prod-table .group-block:first-child { margin-top: 0; }
+        .group-block-header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 10px 16px; border-radius: 10px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .group-block-header .gh-title { font-weight: 700; font-size: 14px; }
+        .group-block-header .gh-sub { font-size: 12px; opacity: 0.9; }
+        .group-block-header .gh-qty { background: #ffd54a; color: #1e3a5f; font-weight: 800; font-size: 14px; padding: 4px 14px; border-radius: 14px; margin-left: auto; }
+        .group-block-header .gh-meta { background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-family: 'Consolas', monospace; }
+
+        .door-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+        .door-card { border: 1.5px solid #cfd6e2; border-radius: 10px; overflow: hidden; background: #fbfcfe; transition: all .15s; }
+        .door-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        .door-card-head { padding: 8px 12px; background: #f1f4f9; border-bottom: 1px solid #e3e8ef; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+        .door-card-code { font-family: 'Consolas', monospace; font-weight: 700; color: #1e3a5f; font-size: 13px; }
+        .door-card-code a { color: inherit; text-decoration: none; }
+        .door-card-code a:hover { text-decoration: underline; }
+        .door-card-loc { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #e7f1ff; color: #1e3a5f; font-weight: 500; }
+        .door-card-opening { padding: 6px 12px; font-size: 11px; color: #6c757d; text-align: center; background: #fafbfc; border-bottom: 1px solid #eef1f5; }
+        .door-card-opening b { color: #495057; }
+        .door-card-leaf { padding: 18px 12px; text-align: center; background: linear-gradient(135deg, #fff 0%, #f6f8fb 100%); }
+        .door-card-leaf .leaf-dim { font-size: 2.2rem; font-weight: 800; color: #1e3a5f; letter-spacing: 0.5px; line-height: 1.05; }
+        .door-card-leaf .leaf-x { color: #adb5bd; font-weight: 600; margin: 0 4px; }
+        .door-card-leaf .leaf-unit { font-size: 12px; color: #6c757d; font-weight: 500; margin-top: 4px; }
+        .door-card-foot { padding: 8px 12px; border-top: 1px solid #eef1f5; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
+        .door-card-color { display: inline-flex; align-items: center; gap: 5px; max-width: 60%; }
+        .color-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); display: inline-block; flex-shrink: 0; }
+        .door-card-qty { font-weight: 800; color: #d63384; font-size: 14px; }
+        .door-card-notes { padding: 4px 12px 8px; font-size: 11px; color: #6c757d; font-style: italic; }
+        @media (max-width: 600px) { .door-cards { grid-template-columns: 1fr; } }
+
+        .order-pick { background: #f8f9fa; border-radius: 10px; padding: 12px; }
+        .order-pick .form-check { padding: 6px 10px; border-radius: 6px; }
+        .order-pick .form-check:hover { background: #e9ecef; }
+        @media print { .sidebar, .no-print { display: none !important; } }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-clipboard2-check me-2"></i>LỆNH SẢN XUẤT</h2>
+            <p class="text-muted mb-0">Gom các bộ cửa từ nhiều đơn thành nhóm theo quy cách — không phụ thuộc đơn nào.</p>
+        </div>
+        <div class="d-flex gap-2 no-print">
+            <a th:href="@{/production/orders/print(ids=${selectedIds})}" target="_blank" class="btn btn-outline-primary">
+                <i class="bi bi-printer"></i> In lệnh SX
+            </a>
+            <a th:href="@{/production/material-summary(ids=${selectedIds})}" class="btn btn-outline-success">
+                <i class="bi bi-table"></i> Tổng hợp vật tư
+            </a>
+        </div>
+    </div>
+
+    <!-- BỘ LỌC: CHỌN ĐƠN -->
+    <div class="summary-card no-print">
+        <h6 class="mb-3"><i class="bi bi-funnel me-2"></i>Chọn đơn hàng cần lên lệnh</h6>
+        <form method="get" th:action="@{/production/orders}" id="filterForm">
+            <div class="d-flex gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllOrders(true)">
+                    <i class="bi bi-check-all"></i> Chọn tất cả
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllOrders(false)">
+                    <i class="bi bi-x-circle"></i> Bỏ chọn
+                </button>
+                <button type="submit" class="btn btn-sm btn-primary ms-auto">
+                    <i class="bi bi-arrow-clockwise"></i> Tạo lệnh SX
+                </button>
+            </div>
+            <div class="order-pick" style="max-height: 220px; overflow-y: auto;">
+                <div class="row g-2">
+                    <div class="col-md-4" th:each="o : ${allOrders}">
+                        <div class="form-check">
+                            <input class="form-check-input order-chk" type="checkbox" name="ids" th:value="${o.id}"
+                                   th:id="'o-' + ${o.id}"
+                                   th:checked="${selectedIds != null and #strings.contains(selectedIds, o.id)}">
+                            <label class="form-check-label w-100" th:for="'o-' + ${o.id}">
+                                <strong class="text-primary" th:text="${o.orderCode}">DH-001</strong>
+                                <small class="text-muted d-block" th:text="${o.customerName}">—</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12 text-muted" th:if="${#lists.isEmpty(allOrders)}">
+                        Chưa có đơn hàng nào.
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="mt-3 small text-muted">
+            <i class="bi bi-info-circle"></i>
+            Mặc định (không chọn) sẽ lấy <b>tất cả đơn chưa hoàn thành / chưa hủy</b>.
+        </div>
+    </div>
+
+    <!-- THỐNG KÊ NHANH -->
+    <div class="row g-3 mb-3 no-print">
+        <div class="col-md-3 col-6">
+            <div class="stat-box bg-grad-blue">
+                <div class="stat-value" th:text="${report.sourceOrderCount}">0</div>
+                <div class="stat-label">Số đơn</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-box bg-grad-purple">
+                <div class="stat-value" th:text="${report.totalDoorCount}">0</div>
+                <div class="stat-label">Tổng bộ cửa</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-box bg-grad-orange">
+                <div class="stat-value" th:text="${report.groups.size()}">0</div>
+                <div class="stat-label">Số nhóm SX</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-box bg-grad-green">
+                <div class="stat-value" th:text="${report.materialSummary != null ? report.materialSummary.totalLeaves : 0}">0</div>
+                <div class="stat-label">Tổng cánh</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG LỆNH SẢN XUẤT -->
+    <div class="prod-table">
+        <div class="section-title"><i class="bi bi-list-ol me-2"></i>BẢNG LỆNH SẢN XUẤT — GOM THEO QUY CÁCH</div>
+
+        <div th:if="${#lists.isEmpty(report.groups)}" class="text-center text-muted py-4">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            Không có đơn nào đang trong sản xuất.
+        </div>
+
+        <th:block th:each="g : ${report.groups}">
+            <div class="group-block">
+                <div class="group-block-header">
+                    <span class="gh-title">
+                        <i class="bi bi-collection-fill"></i>
+                        Nhóm #<span th:text="${g.stt}">1</span>
+                    </span>
+                    <span class="gh-sub">
+                        <span th:text="${g.specKey.doorSystem?.displayName ?: '—'}">—</span> ·
+                        <span th:text="${g.specKey.doorType?.displayName ?: '—'}">—</span>
+                        <span th:if="${g.specKey.pattern != null and g.specKey.pattern != ''}">
+                            · <span th:text="${g.specKey.pattern}">—</span>
+                        </span>
+                    </span>
+                    <span class="gh-meta" th:if="${g.specKey.glassType != null}">
+                        <i class="bi bi-square-half"></i>
+                        <span th:text="${g.specKey.glassType.displayName}">—</span>
+                    </span>
+                    <span class="gh-qty">
+                        <i class="bi bi-stack"></i>
+                        <span th:text="${g.totalQuantity()}">0</span> bộ
+                    </span>
+                </div>
+                <div class="small text-muted mb-2">
+                    Khuôn đứng: <b th:text="${g.specKey.verticalFrame ?: '—'} + ' mm'">—</b> ·
+                    Khuôn ngang: <b th:text="${g.specKey.horizontalFrame ?: '—'} + ' mm'">—</b> ·
+                    Khuôn cao: <b th:text="${g.specKey.heightFrame ?: '—'} + ' mm'">—</b> ·
+                    Nẹp đứng: <b th:text="${g.specKey.verticalTrim ?: '—'} + ' mm'">—</b>
+                    <span th:if="${g.specKey.horizontalTrim != null}">
+                        · Nẹp ngang: <b th:text="${g.specKey.horizontalTrim} + ' mm'">—</b>
+                    </span>
+                </div>
+
+                <div class="door-cards">
+                    <div class="door-card" th:each="de : ${g.doors}">
+                        <div class="door-card-head">
+                            <span class="door-card-code">
+                                <a target="_blank"
+                                   th:href="@{/orders/detail/{id}(id=${de.orderId})}"
+                                   th:text="${de.orderCode}">DH-001</a>
+                                <small class="text-muted" th:if="${de.itemCode != null}"
+                                       th:text="' · ' + ${de.itemCode}">DT01</small>
+                            </span>
+                            <span class="door-card-loc" th:if="${de.location != null}"
+                                  th:text="${de.location.displayName}">—</span>
+                        </div>
+                        <div class="door-card-opening">
+                            Ô chờ (R×C×D):
+                            <b th:text="${de.spec.openingWidth ?: '—'}">—</b> ×
+                            <b th:text="${de.spec.openingHeight ?: '—'}">—</b> ×
+                            <b th:text="${de.spec.wallThickness ?: '—'}">—</b>
+                            <small>mm</small>
+                        </div>
+                        <div class="door-card-leaf">
+                            <div class="leaf-dim">
+                                <span th:text="${de.spec.leafWidth ?: '—'}">—</span>
+                                <span class="leaf-x">×</span>
+                                <span th:text="${de.spec.leafHeight ?: '—'}">—</span>
+                            </div>
+                            <div class="leaf-unit">CÁNH SẢN XUẤT (mm)</div>
+                        </div>
+                        <div class="door-card-foot">
+                            <span class="door-card-color">
+                                <span class="color-swatch" th:style="${'background-color:' + (de.colorName != null and de.colorName != '' ? de.colorName : '#cccccc') + ';'}"></span>
+                                <span th:text="${de.colorName != null and de.colorName != ''} ? ${de.colorName} : '—'">—</span>
+                            </span>
+                            <span class="door-card-qty">
+                                ×<span th:text="${de.quantity}">1</span>
+                            </span>
+                        </div>
+                        <div class="door-card-notes" th:if="${de.notes != null and de.notes != ''}"
+                             th:text="${de.notes}"></div>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script>
+        function toggleAllOrders(checked) {
+            document.querySelectorAll('.order-chk').forEach(c => c.checked = checked);
+        }
+    </script>
+</section>
+</body>
+</html>

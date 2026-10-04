@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Bảng màu - Nhà máy Việt Đức</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .color-swatch-big { width: 44px; height: 44px; border-radius: 8px; border: 2px solid rgba(0,0,0,0.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4); }
+        .color-code-pill { display: inline-block; padding: 3px 10px; border-radius: 6px; background: #1e3a5f; color: white; font-family: 'Consolas', monospace; font-weight: 700; font-size: 12px; }
+        .group-pill { display: inline-block; padding: 2px 10px; border-radius: 12px; background: #e7f1ff; color: #1e3a5f; font-size: 12px; font-weight: 500; }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-palette me-2"></i>Quản lý Bảng màu</h2>
+            <p class="text-muted mb-0">Bảng màu tiêu chuẩn V01 → V21 cho cửa nhựa Việt Đức.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/admin/color-palette/reset}" class="btn btn-outline-secondary"
+               onclick="return confirm('Xoá toàn bộ và khởi tạo lại 21 màu mặc định?')">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset V01..V21
+            </a>
+            <button class="btn btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#itemModal" onclick="openAdd()">
+                <i class="bi bi-plus-circle"></i> Thêm màu
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 60px;">#</th>
+                        <th style="width: 80px;">Swatch</th>
+                        <th style="width: 90px;">Mã</th>
+                        <th>Tên màu</th>
+                        <th style="width: 100px;">Hex</th>
+                        <th style="width: 130px;">Nhóm</th>
+                        <th>Ghi chú</th>
+                        <th class="text-center" style="width: 100px;">Trạng thái</th>
+                        <th class="text-end" style="width: 120px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="it,stat : ${items}">
+                        <td th:text="${stat.count}">1</td>
+                        <td>
+                            <div class="color-swatch-big" th:style="'background-color:' + ${it.hexColor}"></div>
+                        </td>
+                        <td><span class="color-code-pill" th:text="${it.code}">V01</span></td>
+                        <td><strong th:text="${it.name}">Trắng sứ</strong></td>
+                        <td><code th:text="${it.hexColor}">#fff</code></td>
+                        <td>
+                            <span th:if="${it.groupName != null and it.groupName != ''}" class="group-pill" th:text="${it.groupName}">—</span>
+                            <span th:unless="${it.groupName != null and it.groupName != ''}" class="text-muted">—</span>
+                        </td>
+                        <td><small class="text-muted" th:text="${it.notes}">—</small></td>
+                        <td class="text-center">
+                            <span th:if="${it.active}" class="badge bg-primary">Đang dùng</span>
+                            <span th:unless="${it.active}" class="badge bg-secondary">Tắt</span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary edit-btn" data-bs-toggle="modal" data-bs-target="#itemModal"
+                                    th:attr="data-id=${it.id},
+                                            data-code=${it.code},
+                                            data-name=${it.name},
+                                            data-hex=${it.hexColor},
+                                            data-group=${it.groupName},
+                                            data-notes=${it.notes},
+                                            data-active=${it.active},
+                                            data-order=${it.displayOrder}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a th:href="@{/admin/color-palette/delete/{id}(id=${it.id})}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Xoá màu ' + this.previousElementSibling.parentElement.parentElement.querySelector('.color-code-pill').textContent + '?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(items)}">
+                        <td colspan="9" class="text-center text-muted py-4">Chưa có màu nào. Hệ thống sẽ tự tạo 21 màu mặc định.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form class="modal-content" method="post" th:action="@{/admin/color-palette/save}">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="modalTitle">Thêm màu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="iId">
+                    <div class="row g-3">
+                        <div class="col-3">
+                            <label class="form-label">Mã <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="code" id="iCode" placeholder="V01" required
+                                   pattern="V[0-9]{2}" title="Mã có dạng V01..V99">
+                        </div>
+                        <div class="col-9">
+                            <label class="form-label">Tên hiển thị <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" id="iName" placeholder="Vân gỗ nâu nhạt" required>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label">Mã màu Hex <span class="text-danger">*</span></label>
+                            <input type="color" class="form-control form-control-color w-100" id="iHex" value="#cccccc" style="height: 42px;">
+                            <input type="hidden" name="hexColor" id="iHexHidden" value="#cccccc">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Nhóm màu</label>
+                            <select class="form-select" name="groupName" id="iGroup">
+                                <option value="">— chọn nhóm —</option>
+                                <option value="Trơn">Trơn</option>
+                                <option value="Vân gỗ">Vân gỗ</option>
+                                <option value="Vân đá">Vân đá</option>
+                                <option value="Đặc biệt">Đặc biệt</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label">Thứ tự</label>
+                            <input type="number" class="form-control" name="displayOrder" id="iOrder" value="0" min="0">
+                        </div>
+                        <div class="col-2 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="active" id="iActive" value="true" checked>
+                                <label class="form-check-label" for="iActive">Dùng</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Ghi chú</label>
+                            <textarea class="form-control" name="notes" id="iNotes" rows="2" placeholder="Mô tả thêm (mã màu RAL, nhà cung cấp, ...)"></textarea>
+                        </div>
+                    </div>
+                    <input type="hidden" name="_active" value="false">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-warning text-dark"><i class="bi bi-save"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script>
+        document.getElementById('iHex').addEventListener('input', function() {
+            document.getElementById('iHexHidden').value = this.value;
+        });
+
+        function openAdd() {
+            document.getElementById('modalTitle').textContent = 'Thêm màu';
+            document.getElementById('iId').value = '';
+            document.getElementById('iCode').value = '';
+            document.getElementById('iName').value = '';
+            document.getElementById('iHex').value = '#cccccc';
+            document.getElementById('iHexHidden').value = '#cccccc';
+            document.getElementById('iGroup').value = '';
+            document.getElementById('iNotes').value = '';
+            document.getElementById('iActive').checked = true;
+            document.getElementById('iOrder').value = 0;
+        }
+        function openEdit(btn) {
+            document.getElementById('modalTitle').textContent = 'Sửa màu';
+            document.getElementById('iId').value = btn.dataset.id || '';
+            document.getElementById('iCode').value = btn.dataset.code || '';
+            document.getElementById('iName').value = btn.dataset.name || '';
+            document.getElementById('iHex').value = btn.dataset.hex || '#cccccc';
+            document.getElementById('iHexHidden').value = btn.dataset.hex || '#cccccc';
+            document.getElementById('iGroup').value = btn.dataset.group || '';
+            document.getElementById('iNotes').value = btn.dataset.notes || '';
+            document.getElementById('iActive').checked = btn.dataset.active === 'true';
+            document.getElementById('iOrder').value = btn.dataset.order || 0;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEdit(btn));
+            });
+        });
+    </script>
+</section>
+</body>
+</html>

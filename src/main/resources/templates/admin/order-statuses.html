@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Danh mục trạng thái - Nhà Máy Nhựa Việt Đức</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .code-cell { font-family: 'Consolas', monospace; color: #6c757d; font-size: 12px; }
+        .color-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(0,0,0,.1); }
+    </style>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-tags me-2"></i>Danh mục trạng thái</h2>
+            <p class="text-muted mb-0">Quản lý các trạng thái đơn hàng — thêm/sửa/xoá tuỳ ý.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#itemModal" onclick="openAdd()">
+            <i class="bi bi-plus-circle"></i> Thêm trạng thái
+        </button>
+    </div>
+
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Tên hiển thị</th>
+                        <th>Mã</th>
+                        <th>Màu</th>
+                        <th class="text-center">Hoàn thành</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center">Thứ tự</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="it,stat : ${items}">
+                        <td th:text="${stat.count}">1</td>
+                        <td>
+                            <span class="badge me-2"
+                                  th:classappend="'bg-' + (${it.color} ?: 'secondary')"
+                                  th:text="${it.name}">Chờ xác nhận</span>
+                        </td>
+                        <td class="code-cell" th:text="${it.code}">CHO_XAC_NHAN</td>
+                        <td>
+                            <span class="color-dot"
+                                  th:style="${'background-color:' + (it.color != null and it.color != '' ? 'var(--bs-' + it.color + ', #6c757d)' : '#6c757d') + ';'}"></span>
+                            <span th:text="${it.color} ?: '—'">info</span>
+                        </td>
+                        <td class="text-center">
+                            <span th:if="${it.completed}" class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+                            <span th:unless="${it.completed}" class="text-muted">—</span>
+                        </td>
+                        <td class="text-center">
+                            <span th:if="${it.active}" class="badge bg-primary">Đang dùng</span>
+                            <span th:unless="${it.active}" class="badge bg-secondary">Tắt</span>
+                        </td>
+                        <td class="text-center" th:text="${it.displayOrder}">0</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary edit-btn" data-bs-toggle="modal" data-bs-target="#itemModal"
+                                    th:attr="data-id=${it.id},
+                                            data-code=${it.code},
+                                            data-name=${it.name},
+                                            data-color=${it.color},
+                                            data-active=${it.active},
+                                            data-completed=${it.completed},
+                                            data-order=${it.displayOrder},
+                                            data-desc=${it.description}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a th:href="@{/admin/order-statuses/delete/{id}(id=${it.id})}" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Xoá trạng thái này?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(items)}">
+                        <td colspan="8" class="text-center text-muted py-4">Chưa có trạng thái nào.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form class="modal-content" method="post" th:action="@{/admin/order-statuses/save}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">Thêm trạng thái</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="iId">
+                    <div class="mb-3">
+                        <label class="form-label">Mã <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="code" id="iCode" placeholder="VD: DANG_VAN_CHUYEN" required>
+                        <small class="text-muted">Viết HOA, snake_case. Không thể đổi sau khi tạo.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tên hiển thị <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="iName" placeholder="VD: Đang vận chuyển" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Màu sắc</label>
+                        <select class="form-select" name="color" id="iColor">
+                            <option value="secondary">Xám (secondary)</option>
+                            <option value="info">Xanh dương nhạt (info)</option>
+                            <option value="primary">Xanh dương (primary)</option>
+                            <option value="warning">Vàng (warning)</option>
+                            <option value="success">Xanh lá (success)</option>
+                            <option value="danger">Đỏ (danger)</option>
+                            <option value="dark">Đen (dark)</option>
+                        </select>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="active" id="iActive" value="true" checked>
+                                <label class="form-check-label" for="iActive">Đang dùng</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="completed" id="iCompleted" value="true">
+                                <label class="form-check-label" for="iCompleted">Trạng thái hoàn thành</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Thứ tự hiển thị</label>
+                        <input type="number" class="form-control" name="displayOrder" id="iOrder" value="0">
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" name="description" id="iDesc" rows="2"></textarea>
+                    </div>
+                    <input type="hidden" name="_active" value="false">
+                    <input type="hidden" name="_completed" value="false">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script>
+        function openAdd() {
+            document.getElementById('modalTitle').textContent = 'Thêm trạng thái';
+            document.getElementById('iId').value = '';
+            document.getElementById('iCode').value = '';
+            document.getElementById('iCode').readOnly = false;
+            document.getElementById('iName').value = '';
+            document.getElementById('iColor').value = 'secondary';
+            document.getElementById('iActive').checked = true;
+            document.getElementById('iCompleted').checked = false;
+            document.getElementById('iOrder').value = 0;
+            document.getElementById('iDesc').value = '';
+        }
+        function openEdit(btn) {
+            document.getElementById('modalTitle').textContent = 'Sửa trạng thái';
+            document.getElementById('iId').value = btn.dataset.id || '';
+            document.getElementById('iCode').value = btn.dataset.code || '';
+            document.getElementById('iCode').readOnly = true;
+            document.getElementById('iName').value = btn.dataset.name || '';
+            document.getElementById('iColor').value = btn.dataset.color || 'secondary';
+            document.getElementById('iActive').checked = btn.dataset.active === 'true';
+            document.getElementById('iCompleted').checked = btn.dataset.completed === 'true';
+            document.getElementById('iOrder').value = btn.dataset.order || 0;
+            document.getElementById('iDesc').value = btn.dataset.desc || '';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEdit(btn));
+            });
+        });
+    </script>
+</section>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Lệnh SX -
+        <span th:text="${group.groupCode}">VD-DH001-MAU01</span> -
+        <span th:text="${order.orderCode}">DH-001</span>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        @page { size: A4; margin: 12mm; }
+        body {
+            background: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            color: #1e3a5f;
+            font-size: 12px;
+        }
+        .print-page {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm 8mm;
+        }
+        .doc-title {
+            text-align: center;
+            border-bottom: 3px double #1e3a5f;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+        }
+        .doc-title h1 {
+            color: #1e3a5f;
+            font-weight: 700;
+            font-size: 22px;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+        .doc-title .sub {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        /* ============ Header thong tin don ============ */
+        .order-info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 8px 10px;
+            border: 1px solid #1e3a5f;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+        .order-info .info-cell .lbl {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #6c757d;
+            letter-spacing: 0.5px;
+        }
+        .order-info .info-cell .val {
+            font-weight: 700;
+            color: #1e3a5f;
+            font-size: 13px;
+        }
+
+        /* ============ Mau cua (thong so mau) ============ */
+        .mau-section {
+            border: 2px solid #1e3a5f;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+        .mau-header {
+            background: #1e3a5f;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+        .mau-header .group-code {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #ffc107;
+        }
+        .mau-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 8px 12px;
+            background: #e7f1ff;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .mau-summary .lbl {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #6c757d;
+            letter-spacing: 0.5px;
+        }
+        .mau-summary .val { font-weight: 600; font-size: 12px; }
+        .mau-summary .chip {
+            display: inline-block;
+            background: #1e3a5f;
+            color: white;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin: 1px 2px;
+        }
+
+        /* ============ Bang cac bo trong mau ============ */
+        .doors-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .doors-print-table thead th {
+            background: #1e3a5f;
+            color: white;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border: 1px solid #1e3a5f;
+        }
+        .doors-print-table tbody td {
+            border: 1px solid #adb5bd;
+            padding: 5px 6px;
+            vertical-align: top;
+        }
+        .doors-print-table tbody tr:nth-child(even) { background: #fafbfc; }
+        .doors-print-table .item-code {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: #1e3a5f;
+        }
+        .doors-print-table .small-line {
+            display: block;
+            font-size: 10px;
+            color: #495057;
+        }
+        .doors-print-table .text-center { text-align: center; }
+        .doors-print-table .text-right { text-align: right; }
+        .needs-review {
+            background: #ffc107 !important;
+            color: #1e3a5f;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+        }
+
+        /* ============ Bang tom ton vat tu ============ */
+        .material-summary {
+            margin-top: 14px;
+            page-break-inside: avoid;
+        }
+        .material-summary h5 {
+            color: #1e3a5f;
+            font-weight: 700;
+            border-bottom: 2px solid #1e3a5f;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+        }
+        .material-summary table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .material-summary table th,
+        .material-summary table td {
+            border: 1px solid #adb5bd;
+            padding: 4px 6px;
+        }
+        .material-summary table thead th {
+            background: #e7f1ff;
+            color: #1e3a5f;
+            text-align: center;
+        }
+        .material-summary table tfoot td {
+            background: #fff3cd;
+            font-weight: 700;
+        }
+
+        /* ============ Footer (ky ten) ============ */
+        .signatures {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .signatures .sign-block {
+            font-size: 11px;
+        }
+        .signatures .sign-block .role {
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 50px;
+        }
+        .signatures .sign-block .name {
+            border-top: 1px solid #1e3a5f;
+            padding-top: 4px;
+            font-style: italic;
+        }
+
+        /* ============ No-print buttons ============ */
+        .no-print {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button class="btn btn-primary btn-sm" onclick="window.print()">
+        <i class="bi bi-printer"></i> In ngay
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="window.close()">
+        <i class="bi bi-x"></i> Đóng
+    </button>
+</div>
+
+<div class="print-page">
+
+    <!-- ===== TIÊU ĐỀ ===== -->
+    <div class="doc-title">
+        <h1>LỆNH SẢN XUẤT CỬA NHỰA</h1>
+        <div class="sub">
+            Nhà máy Nhựa Việt Đức &nbsp;|&nbsp;
+            Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}">03/10/2026</span>
+        </div>
+    </div>
+
+    <!-- ===== THÔNG TIN ĐƠN ===== -->
+    <div class="order-info">
+        <div class="info-cell">
+            <div class="lbl">Mã đơn</div>
+            <div class="val" th:text="${order.orderCode}">DH-001</div>
+        </div>
+        <div class="info-cell">
+            <div class="lbl">Khách hàng</div>
+            <div class="val" th:text="${order.customerName} ?: '—'">—</div>
+        </div>
+        <div class="info-cell">
+            <div class="lbl">SĐT</div>
+            <div class="val" th:text="${order.customerPhone} ?: '—'">—</div>
+        </div>
+        <div class="info-cell">
+            <div class="lbl">Deadline</div>
+            <div class="val">
+                <span th:text="${#temporals.format(order.productionDeadline, 'dd/MM/yyyy')}">13/10/2026</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MẪU CỬA ===== -->
+    <div class="mau-section">
+        <div class="mau-header">
+            <span>
+                <i class="bi bi-collection"></i>
+                MẪU CỬA &mdash;
+                <span class="group-code" th:text="${group.groupCode}">VD-DH001-MAU01</span>
+                &nbsp;
+                <small th:text="${group.displayName}">Cửa phòng — Trơn</small>
+            </span>
+            <span>
+                <i class="bi bi-list-ol"></i>
+                <span th:text="${group.doors != null ? group.doors.size() : 0}">0</span> bộ
+            </span>
+        </div>
+
+        <!-- Tóm tắt thông số mẫu -->
+        <div class="mau-summary">
+            <div>
+                <div class="lbl">Hệ / Loại</div>
+                <div class="val">
+                    <span th:text="${group.doorSystem?.displayName} ?: '—'">Hệ 40</span>
+                    &nbsp;|&nbsp;
+                    <span th:text="${group.doorType?.displayName} ?: '—'">Cửa phòng</span>
+                </div>
+            </div>
+            <div>
+                <div class="lbl">Mẫu cánh</div>
+                <div class="val" th:text="${group.pattern?.displayName} ?: '—'">Trơn</div>
+            </div>
+            <div>
+                <div class="lbl">Màu</div>
+                <div class="val" th:text="${group.colorName} ?: '—'">Trắng</div>
+            </div>
+            <div>
+                <div class="lbl">Phụ phí</div>
+                <div class="val">
+                    <span class="chip" th:if="${group.extraScrew == true}">Vít</span>
+                    <span class="chip" th:if="${group.extraCnc == true}">CNC</span>
+                    <span class="chip" th:if="${group.extraGlassShort == true}">Kính ngắn</span>
+                    <span class="chip" th:if="${group.extraGlassLong == true}">Kính dài</span>
+                    <span class="chip" th:if="${group.extraVent == true}">Ô gió</span>
+                    <span class="chip" th:if="${group.extraAluminum == true}">Chỉ nhôm</span>
+                    <span class="chip" th:if="${group.extraMolding == true}">Phào nổi</span>
+                    <span class="chip" th:if="${group.extraPaintDoor == true}">Sơn cửa</span>
+                    <span class="chip" th:if="${group.extraBo == true}">Bo</span>
+                    <span class="chip" th:if="${group.extraMoldingGia == true}">Phào giá</span>
+                    <span class="chip" th:if="${group.extraLock == true}">Khóa</span>
+                    <span class="chip" th:if="${group.extraColor == true}">Màu</span>
+                    <span class="text-muted" th:if="${!(group.extraScrew == true) and !(group.extraCnc == true) and !(group.extraGlassShort == true) and !(group.extraGlassLong == true) and !(group.extraVent == true) and !(group.extraAluminum == true) and !(group.extraMolding == true) and !(group.extraPaintDoor == true) and !(group.extraBo == true) and !(group.extraMoldingGia == true) and !(group.extraLock == true) and !(group.extraColor == true)}">Không</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== BẢNG CÁC BỘ TRONG MẪU ===== -->
+        <table class="doors-print-table">
+            <thead>
+            <tr>
+                <th style="width:30px;">#</th>
+                <th style="width:120px;">Mã bộ / Vị trí</th>
+                <th style="width:85px;">Ô chờ (mm)</th>
+                <th style="width:60px;">Dày<br>tường</th>
+                <th style="width:75px;">Cánh SX (mm)</th>
+                <th style="width:140px;">Khuôn (mm)</th>
+                <th style="width:115px;">Nẹp (mm)</th>
+                <th style="width:85px;">Phụ kiện</th>
+                <th style="width:60px;">Kính</th>
+                <th style="width:55px;">KT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="door,di : ${group.doors}">
+                <td class="text-center"><b th:text="${di.count}">1</b></td>
+                <td>
+                    <span class="item-code" th:text="${door.itemCode}">—</span>
+                    <span class="small-line" th:if="${door.location != null}"
+                          th:text="${door.location.displayName}">—</span>
+                    <span class="small-line"
+                          th:if="${door.locationDetail != null and door.locationDetail != ''}"
+                          th:text="${door.locationDetail}">—</span>
+                </td>
+                <td class="text-center">
+                    <b th:text="${door.openingWidth}">—</b> ×
+                    <b th:text="${door.openingHeight}">—</b>
+                </td>
+                <td class="text-center" th:text="${door.wallThickness} + ' mm'">—</td>
+                <td class="text-center">
+                    <span th:text="${door.leafWidth}">—</span> ×
+                    <span th:text="${door.leafHeight}">—</span>
+                </td>
+                <td class="text-center">
+                    <span class="small-line">Đ: <b th:text="${door.verticalFrame}">—</b></span>
+                    <span class="small-line">Ngang: <b th:text="${door.horizontalFrame}">—</b></span>
+                    <span class="small-line">Cao: <b th:text="${door.heightFrame}">—</b></span>
+                </td>
+                <td class="text-center">
+                    <span class="small-line">Đ: <b th:text="${door.verticalTrim}">—</b>
+                        × <b th:text="${door.verticalTrimQuantity}">2</b>
+                    </span>
+                    <span class="small-line" th:if="${door.horizontalTrim != null and door.horizontalTrim > 0}">
+                        Ngang: <b th:text="${door.horizontalTrim}">—</b>
+                    </span>
+                </td>
+                <td>
+                    <span class="small-line">
+                        <i class="bi bi-key"></i>
+                        <span th:text="${door.lockType} ?: '—'">—</span>
+                        <span th:if="${door.lockQuantity != null and door.lockQuantity > 0}">
+                            ×<b th:text="${door.lockQuantity}">1</b>
+                        </span>
+                    </span>
+                    <span class="small-line" th:if="${door.hingeType != null and door.hingeType != ''}">
+                        <i class="bi bi-gear"></i>
+                        <span th:text="${door.hingeType}">—</span>
+                        <span th:if="${door.hingeQuantity != null and door.hingeQuantity > 0}">
+                            ×<b th:text="${door.hingeQuantity}">3</b>
+                        </span>
+                    </span>
+                </td>
+                <td class="text-center" th:text="${door.glassQuantity} ?: '—'">—</td>
+                <td class="text-center">
+                    <span th:if="${door.needsReview == true}" class="needs-review">⚠ KT</span>
+                    <span th:unless="${door.needsReview == true}" style="color:#198754;font-weight:700;">✓</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== TỔNG HỢP VẬT TƯ CHO MẪU ===== -->
+    <div class="material-summary" th:if="${group.doors != null and !group.doors.isEmpty()}">
+        <h5><i class="bi bi-boxes"></i> TỔNG HỢP VẬT TƯ (MẪU NÀY)</h5>
+        <table>
+            <thead>
+            <tr>
+                <th style="width:50%;">Hạng mục</th>
+                <th>Quy cách / Ghi chú</th>
+                <th style="width:80px;">SL</th>
+                <th style="width:80px;">ĐVT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Cánh (đếm theo số bộ) -->
+            <tr>
+                <td><b>Cánh cửa</b></td>
+                <td>
+                    <span th:text="${group.doors.size()}">0</span> bộ
+                    &nbsp;|&nbsp; KT cánh (mm):
+                    <span th:text="${group.doors[0].leafWidth}">—</span> ×
+                    <span th:text="${group.doors[0].leafHeight}">—</span>
+                </td>
+                <td class="text-center" th:text="${group.doors.size()}">0</td>
+                <td class="text-center">bộ</td>
+            </tr>
+            <!-- Khuôn đứng -->
+            <tr>
+                <td><b>Khuôn đứng</b></td>
+                <td>Dài
+                    <span th:text="${group.doors[0].verticalFrame}">—</span> mm
+                    (mẫu đầu tiên — KTO kiểm tra lại)
+                </td>
+                <td class="text-center">
+                    <span th:text="${group.doors.size() * 2}">0</span>
+                </td>
+                <td class="text-center">thanh</td>
+            </tr>
+            <!-- Khuôn ngang -->
+            <tr>
+                <td><b>Khuôn ngang</b></td>
+                <td>Dài
+                    <span th:text="${group.doors[0].horizontalFrame}">—</span> mm
+                </td>
+                <td class="text-center">
+                    <span th:text="${group.doors.size()}">0</span>
+                </td>
+                <td class="text-center">thanh</td>
+            </tr>
+            <!-- Khuôn cao (nếu có) -->
+            <tr th:if="${group.doors[0].heightFrame != null and group.doors[0].heightFrame > 0}">
+                <td><b>Khuôn cao</b></td>
+                <td>Dài
+                    <span th:text="${group.doors[0].heightFrame}">—</span> mm
+                </td>
+                <td class="text-center">
+                    <span th:text="${group.doors.size()}">0</span>
+                </td>
+                <td class="text-center">thanh</td>
+            </tr>
+            <!-- Nẹp đứng -->
+            <tr>
+                <td><b>Nẹp đứng</b></td>
+                <td>Dài
+                    <span th:text="${group.doors[0].verticalTrim}">—</span> mm
+                </td>
+                <td class="text-center">
+                    <span th:text="${group.doors.size() * group.doors[0].safeVerticalTrimQuantity()}">0</span>
+                </td>
+                <td class="text-center">thanh</td>
+            </tr>
+            <!-- Khóa -->
+            <tr th:if="${group.doors[0].lockType != null and group.doors[0].lockType != ''}">
+                <td><b>Khóa</b></td>
+                <td th:text="${group.doors[0].lockType}">—</td>
+                <td class="text-center">
+                    <span th:text="${(group.doors[0].lockQuantity ?: 0) * group.doors.size()}">0</span>
+                </td>
+                <td class="text-center">cái</td>
+            </tr>
+            <!-- Bản lề -->
+            <tr th:if="${group.doors[0].hingeType != null and group.doors[0].hingeType != ''}">
+                <td><b>Bản lề</b></td>
+                <td th:text="${group.doors[0].hingeType">—</td>
+                <td class="text-center">
+                    <span th:text="${(group.doors[0].hingeQuantity ?: 0) * group.doors.size()}">0</span>
+                </td>
+                <td class="text-center">cái</td>
+            </tr>
+            <!-- Kính -->
+            <tr th:if="${group.doors[0].glassQuantity != null and group.doors[0].glassQuantity > 0}">
+                <td><b>Ô kính</b></td>
+                <td>
+                    <span th:text="${group.glassType?.displayName} ?: 'Kính'">Kính</span>
+                </td>
+                <td class="text-center">
+                    <span th:text="${(group.doors[0].glassQuantity ?: 0) * group.doors.size()}">0</span>
+                </td>
+                <td class="text-center">ô</td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <td colspan="2" class="text-right">Tổng số bộ cửa trong mẫu này:</td>
+                <td colspan="2" class="text-center" th:text="${group.doors.size()} + ' bộ'">0 bộ</td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- ===== KÝ TÊN ===== -->
+    <div class="signatures">
+        <div class="sign-block">
+            <div class="role">Người lập</div>
+            <div class="name">(KTO)</div>
+        </div>
+        <div class="sign-block">
+            <div class="role">Quản đốc</div>
+            <div class="name">(Ký tên)</div>
+        </div>
+        <div class="sign-block">
+            <div class="role">Tổ trưởng SX</div>
+            <div class="name">(Ký tên)</div>
+        </div>
+        <div class="sign-block">
+            <div class="role">Xác nhận</div>
+            <div class="name">(Ký tên)</div>
+        </div>
+    </div>
+
+    <!-- Ghi chú đơn -->
+    <div class="mt-3" th:if="${order.notes != null and order.notes != ''}">
+        <small class="text-muted">
+            <b>Ghi chú đơn:</b> <span th:text="${order.notes}">—</span>
+        </small>
+    </div>
+
+</div>
+
+<script>
+    // Auto print nếu ?print=1
+    if (new URLSearchParams(window.location.search).get('auto') === '1') {
+        setTimeout(() => window.print(), 300);
+    }
+</script>
+</body>
+</html>

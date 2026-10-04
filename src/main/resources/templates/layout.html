@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="vi">
+<!--
+    Layout chung cho toàn bộ ứng dụng (dùng thymeleaf-layout-dialect).
+    Cách dùng trong trang con:
+      <html xmlns:th="..." xmlns:layout="...">
+      <body>
+        <section layout:fragment="content">
+          ... nội dung trang ...
+        </section>
+        <section layout:fragment="scripts">
+          ... JS riêng của trang (không bắt buộc) ...
+        </section>
+      </body>
+    Mặc định controller truyền 'active' để highlight menu.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý - Nhà Máy Nhựa Việt Đức</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand-dark: #1e3a5f;
+            --brand: #2d5a87;
+            --brand-light: #e8f0f7;
+            --bg: #f5f6fa;
+        }
+        body {
+            background-color: var(--bg);
+            font-family: 'Segoe UI', 'Segoe UI Variable', Tahoma, 'DejaVu Sans', Verdana, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Ensure Vietnamese characters use proper font with full glyph coverage */
+        html, body, table, th, td, h1, h2, h3, h4, h5, h6, p, span, div, a, button, label, strong {
+            font-feature-settings: "kern" on, "liga" on;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, var(--brand-dark) 0%, var(--brand) 100%);
+            min-height: 100vh;
+            color: white;
+            position: sticky; top: 0;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.85);
+            padding: 11px 18px;
+            margin: 3px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex; align-items: center;
+        }
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.22);
+            color: white;
+            font-weight: 600;
+        }
+        .sidebar .nav-link i { margin-right: 10px; font-size: 1.1rem; }
+        .sidebar .section-label {
+            padding: 14px 22px 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            opacity: 0.55;
+            letter-spacing: 1px;
+        }
+        .main-content { padding: 24px 30px; }
+        .page-header { margin-bottom: 22px; }
+        .page-header h2 {
+            color: var(--brand-dark);
+            font-weight: 700;
+            margin: 0;
+        }
+        .page-header .subtitle { color: #6c757d; margin-top: 4px; font-size: 14px; }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+        .card-stat {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .card-stat:hover { transform: translateY(-3px); }
+        .card-stat .icon {
+            width: 56px; height: 56px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+        }
+        .brand-logo {
+            padding: 22px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .brand-logo h4 { margin: 12px 0 0 0; font-weight: 700; letter-spacing: 1px; }
+        .brand-logo small { opacity: 0.75; font-size: 11px; letter-spacing: 1px; }
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+            border: none;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%);
+        }
+        .btn-outline-primary { color: var(--brand); border-color: var(--brand); }
+        .btn-outline-primary:hover { background: var(--brand); border-color: var(--brand); }
+        .table thead th {
+            background: #f8f9fa;
+            color: var(--brand-dark);
+            font-weight: 600;
+            border: none;
+            padding: 13px 14px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .table tbody td { vertical-align: middle; padding: 13px 14px; }
+        .table tbody tr:hover { background: var(--brand-light); }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .action-btn { padding: 5px 10px; margin: 0 2px; }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 0.2rem rgba(45, 90, 135, 0.2);
+        }
+        .form-label { font-weight: 500; color: #444; font-size: 14px; margin-bottom: 4px; }
+        .modal-content { border-radius: 14px; border: none; }
+        .modal-header { background: var(--brand-light); border-bottom: 1px solid #e1e8ed; border-radius: 14px 14px 0 0; }
+        .modal-title { color: var(--brand-dark); font-weight: 700; }
+        .badge.bg-soft-primary { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed; z-index: 1000;
+                width: 250px; transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            .sidebar.show { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-2 sidebar" id="sidebar">
+            <div class="brand-logo">
+                <i class="bi bi-factory" style="font-size: 44px;"></i>
+                <h4>VIỆT ĐỨC</h4>
+                <small>NHỰA COMPOSITEP</small>
+            </div>
+            <nav class="nav flex-column mt-2">
+                <div class="section-label">Vận hành</div>
+                <a class="nav-link" th:href="@{/}" th:classappend="${active=='dashboard' ? 'active' : ''}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <a class="nav-link" th:href="@{/orders}" th:classappend="${active=='orders' ? 'active' : ''}">
+                    <i class="bi bi-box-seam"></i> Quản lý Đơn hàng
+                </a>
+                <a class="nav-link" th:href="@{/orders/new-multi}" th:classappend="${active=='order-multi' ? 'active' : ''}">
+                    <i class="bi bi-plus-square"></i> Tạo đơn nhiều cửa
+                </a>
+                <a class="nav-link" th:href="@{/reports}" th:classappend="${active=='reports' ? 'active' : ''}">
+                    <i class="bi bi-graph-up"></i> Báo cáo Thống kê
+                </a>
+                <a class="nav-link" th:href="@{/orders/status}" th:classappend="${active=='orders-status' ? 'active' : ''}">
+                    <i class="bi bi-kanban"></i> Bảng trạng thái
+                </a>
+
+                <div class="section-label mt-3">Danh mục</div>
+                <a class="nav-link" th:href="@{/admin/color-palette}" th:classappend="${active=='colors' ? 'active' : ''}">
+                    <i class="bi bi-palette"></i> Bảng màu
+                </a>
+                <a class="nav-link" th:href="@{/admin/customers}" th:classappend="${active=='customers' ? 'active' : ''}">
+                    <i class="bi bi-people"></i> Khách hàng
+                </a>
+                <a class="nav-link" th:href="@{/admin/door-systems}" th:classappend="${active=='door-systems' ? 'active' : ''}">
+                    <i class="bi bi-grid-3x3-gap"></i> Hệ cửa
+                </a>
+                <a class="nav-link" th:href="@{/admin/order-statuses}" th:classappend="${active=='order-statuses' ? 'active' : ''}">
+                    <i class="bi bi-tags"></i> Trạng thái đơn
+                </a>
+                <a class="nav-link" th:href="@{/admin/processing-fees}" th:classappend="${active=='fees' ? 'active' : ''}">
+                    <i class="bi bi-cash-stack"></i> Phí gia công
+                </a>
+                <a class="nav-link" th:href="@{/admin/print-pattern}" th:classappend="${active=='print-pattern' ? 'active' : ''}">
+                    <i class="bi bi-printer"></i> Mẫu in
+                </a>
+
+                <div class="section-label mt-3">Hệ thống</div>
+                <a class="nav-link" href="#"><i class="bi bi-gear"></i> Cài đặt</a>
+            </nav>
+        </div>
+
+        <!-- Main -->
+        <div class="col-md-10 main-content">
+            <button class="btn btn-light mb-3 d-md-none" onclick="toggleSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-2"></i>
+                <span th:text="${success}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <section layout:fragment="content">
+                <p class="text-muted">Trang này chưa có nội dung.</p>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('show');
+    }
+    window.setTimeout(function() {
+        document.querySelectorAll('.alert').forEach(function(a) {
+            var bs = bootstrap.Alert.getOrCreateInstance(a);
+            bs.close();
+        });
+    }, 5000);
+</script>
+<section layout:fragment="scripts"></section>
+</body>
+</html>

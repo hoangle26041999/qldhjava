@@ -1,0 +1,61 @@
+<!--
+    Sidebar fragment dùng chung cho mọi trang.
+    Cách dùng (THAY THẾ chính div này, KHÔNG bọc thêm):
+      <div th:replace="~{fragments/sidebar :: sidebar(active='orders')}"></div>
+    active = 'dashboard' | 'orders' | 'orders-status' | 'orders-new' | 'doors' | 'production'
+           | 'production-orders' | 'production-material'
+           | 'reports' | 'customers' | 'door-systems' | 'processing-fees' | 'order-statuses'
+           | 'color-palette' | 'product-specs'
+-->
+<div th:fragment="sidebar(active)" class="col-lg-2 col-md-2 sidebar">
+    <div class="brand-logo">
+        <i class="bi bi-factory" style="font-size: 48px;"></i>
+        <h4 class="mt-2 mb-0">VIET DUC</h4>
+        <small>NHỰA COMPOSITEP</small>
+    </div>
+    <nav class="nav flex-column mt-3">
+        <a class="nav-link" th:classappend="${active == 'dashboard'} ? 'active' : ''" th:href="@{/}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a class="nav-link" th:classappend="${active == 'orders'} ? 'active' : ''" th:href="@{/orders}">
+            <i class="bi bi-box-seam"></i> Quản Lý Đơn
+        </a>
+        <a class="nav-link" th:classappend="${active == 'orders-status'} ? 'active' : ''" th:href="@{/orders/status}">
+            <i class="bi bi-kanban"></i> Bảng trạng thái
+        </a>
+        <a class="nav-link" th:classappend="${active == 'orders-new'} ? 'active' : ''" th:href="@{/orders/new-multi}">
+            <i class="bi bi-plus-circle"></i> Tạo đơn mới
+        </a>
+        <a class="nav-link" th:classappend="${active == 'production'} ? 'active' : ''" th:href="@{/production/summary}">
+            <i class="bi bi-clipboard-data"></i> Tổng hợp SX
+        </a>
+        <a class="nav-link" th:classappend="${active == 'production-orders'} ? 'active' : ''" th:href="@{/production/orders}">
+            <i class="bi bi-clipboard2-check"></i> Lệnh SX (theo nhóm)
+        </a>
+        <a class="nav-link" th:classappend="${active == 'production-material'} ? 'active' : ''" th:href="@{/production/material-summary}">
+            <i class="bi bi-box-seam"></i> Tổng hợp vật tư
+        </a>
+        <a class="nav-link" th:classappend="${active == 'reports'} ? 'active' : ''" th:href="@{/reports}">
+            <i class="bi bi-graph-up"></i> Báo cáo
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.2);">
+        <a class="nav-link" th:classappend="${active == 'customers'} ? 'active' : ''" th:href="@{/admin/customers}">
+            <i class="bi bi-people"></i> Khách hàng
+        </a>
+        <a class="nav-link" th:classappend="${active == 'door-systems'} ? 'active' : ''" th:href="@{/admin/door-systems}">
+            <i class="bi bi-grid-3x3-gap"></i> Dòng cánh
+        </a>
+        <a class="nav-link" th:classappend="${active == 'processing-fees'} ? 'active' : ''" th:href="@{/admin/processing-fees}">
+            <i class="bi bi-tools"></i> Phát sinh gia công
+        </a>
+        <a class="nav-link" th:classappend="${active == 'color-palette'} ? 'active' : ''" th:href="@{/admin/color-palette}">
+            <i class="bi bi-palette"></i> Bảng màu (V01..V21)
+        </a>
+        <a class="nav-link" th:classappend="${active == 'product-specs'} ? 'active' : ''" th:href="@{/admin/product-specs}">
+            <i class="bi bi-rulers"></i> Quy cách sản phẩm
+        </a>
+        <a class="nav-link" th:classappend="${active == 'order-statuses'} ? 'active' : ''" th:href="@{/admin/order-statuses}">
+            <i class="bi bi-tags"></i> Danh mục trạng thái
+        </a>
+    </nav>
+</div>

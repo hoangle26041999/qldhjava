@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý trạng thái đơn hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #eef2f7; font-family: 'Segoe UI', sans-serif; }
+        .board-header { background: linear-gradient(135deg, #2d5a87, #1e4d7a); color: white; padding: 18px 24px; border-radius: 10px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+        .board-header h3 { margin: 0; font-weight: 600; }
+        .board-header small { color: #cfe2f3; }
+        .stat-pill { background: rgba(255,255,255,.15); padding: 4px 12px; border-radius: 12px; font-size: 13px; margin-left: 8px; }
+
+        .kanban { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 0 8px; }
+        @media (max-width: 1400px) { .kanban { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 900px) { .kanban { grid-template-columns: 1fr; } }
+
+        .kanban-col { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 360px; }
+        .kanban-col-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 2px solid; margin-bottom: 10px; }
+        .col-title { font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: .3px; }
+        .col-count { background: #f0f3f7; color: #495057; padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+        .col-empty { color: #adb5bd; text-align: center; padding: 24px 0; font-style: italic; font-size: 13px; }
+
+        /* Màu sắc cho từng trạng thái (dùng data-col) */
+        .kanban-col[data-col="secondary"] .kanban-col-header { border-bottom-color: #6c757d; }
+        .kanban-col[data-col="secondary"] .col-title { color: #6c757d; }
+        .kanban-col[data-col="info"] .kanban-col-header { border-bottom-color: #0dcaf0; }
+        .kanban-col[data-col="info"] .col-title { color: #087990; }
+        .kanban-col[data-col="warning"] .kanban-col-header { border-bottom-color: #ffc107; }
+        .kanban-col[data-col="warning"] .col-title { color: #997404; }
+        .kanban-col[data-col="success"] .kanban-col-header { border-bottom-color: #198754; }
+        .kanban-col[data-col="success"] .col-title { color: #0f5132; }
+        .kanban-col[data-col="danger"] .kanban-col-header { border-bottom-color: #dc3545; }
+        .kanban-col[data-col="danger"] .col-title { color: #b02a37; }
+
+        .order-card { background: #fafbfc; border: 1px solid #e3e8ef; border-left: 3px solid #2d5a87; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; transition: all .15s; }
+        .order-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,.08); transform: translateY(-1px); }
+        .order-card.overdue { border-left-color: #dc3545; background: #fff5f5; }
+        .order-card.warning { border-left-color: #ffc107; background: #fffbf0; }
+        .order-code { font-weight: 700; color: #2d5a87; font-size: 13px; }
+        .order-customer { color: #495057; font-size: 13px; margin: 2px 0; }
+        .order-amount { color: #d97706; font-weight: 600; font-size: 13px; }
+        .order-deadline { font-size: 11px; color: #6c757d; margin-top: 4px; }
+
+        .status-select { font-size: 11px; padding: 2px 6px; border-radius: 3px; border: 1px solid #ced4da; width: 100%; margin-top: 6px; background: white; }
+        .status-select:focus { outline: none; border-color: #2d5a87; }
+
+        .badge-warning-card { background: #fff3cd; color: #997404; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+        .badge-overdue-card { background: #f8d7da; color: #b02a37; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-3">
+    <div class="board-header d-flex justify-content-between align-items-center">
+        <div>
+            <h3><i class="bi bi-kanban"></i> Bảng quản lý trạng thái đơn hàng</h3>
+            <small>Cập nhật trực tiếp — đổi trạng thái tại mỗi thẻ đơn hàng.</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="stat-pill"><i class="bi bi-stack"></i> Tổng: <b>5</b></span>
+            <a href="/orders" class="btn btn-light btn-sm"><i class="bi bi-list-ul"></i> Danh sách</a>
+        </div>
+    </div>
+
+    <div class="kanban">
+        <div class="kanban-col" data-col="secondary">
+            <div class="kanban-col-header">
+                <span class="col-title">Chờ xác nhận</span>
+                <span class="col-count">1</span>
+            </div>
+            
+            <div class="order-card warning">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="order-code">VD-20261003-004</div>
+                    <span class="badge-warning-card">Cảnh báo</span>
+                    
+                </div>
+                <div class="order-customer">Hoàng Minh Đức</div>
+                <div class="order-amount">18.136.825 ₫</div>
+                <div class="order-deadline">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>25/09/2026</span>
+                </div>
+                <select class="status-select form-select-sm"
+                        onchange="changeStatus(this)" data-id="6ac0e2219753d20aab6013d7" data-original="CHO_XAC_NHAN">
+                    <option value="CHO_XAC_NHAN"
+                            selected="selected">Chờ xác nhận</option>
+                    <option value="DA_XAC_NHAN">Đã xác nhận</option>
+                    <option value="DANG_SAN_XUAT">Đang sản xuất</option>
+                    <option value="HOAN_THANH">Hoàn thành</option>
+                    <option value="DA_HUY">Đã hủy</option>
+                </select>
+            </div>
+        </div>
+        <div class="kanban-col" data-col="info">
+            <div class="kanban-col-header">
+                <span class="col-title">Đã xác nhận</span>
+                <span class="col-count">1</span>
+            </div>
+            
+            <div class="order-card overdue">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="order-code">VD-20261003-002</div>
+                    
+                    <span class="badge-overdue-card">Quá hạn</span>
+                </div>
+                <div class="order-customer">Vũ Quốc Bảo</div>
+                <div class="order-amount">25.823.802 ₫</div>
+                <div class="order-deadline">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>14/09/2026</span>
+                </div>
+                <select class="status-select form-select-sm"
+                        onchange="changeStatus(this)" data-id="6ac0e2209753d20aab6013d5" data-original="DA_XAC_NHAN">
+                    <option value="CHO_XAC_NHAN">Chờ xác nhận</option>
+                    <option value="DA_XAC_NHAN"
+                            selected="selected">Đã xác nhận</option>
+                    <option value="DANG_SAN_XUAT">Đang sản xuất</option>
+                    <option value="HOAN_THANH">Hoàn thành</option>
+                    <option value="DA_HUY">Đã hủy</option>
+                </select>
+            </div>
+        </div>
+        <div class="kanban-col" data-col="warning">
+            <div class="kanban-col-header">
+                <span class="col-title">Đang sản xuất</span>
+                <span class="col-count">0</span>
+            </div>
+            <div class="col-empty">Chưa có đơn</div>
+            
+        </div>
+        <div class="kanban-col" data-col="success">
+            <div class="kanban-col-header">
+                <span class="col-title">Hoàn thành</span>
+                <span class="col-count">2</span>
+            </div>
+            
+            <div class="order-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="order-code">VD-20261003-003</div>
+                    
+                    
+                </div>
+                <div class="order-customer">Ngô Thị Hồng Nhung</div>
+                <div class="order-amount">23.127.111 ₫</div>
+                <div class="order-deadline">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>29/09/2026</span>
+                </div>
+                <select class="status-select form-select-sm"
+                        onchange="changeStatus(this)" data-id="6ac0e2219753d20aab6013d6" data-original="HOAN_THANH">
+                    <option value="CHO_XAC_NHAN">Chờ xác nhận</option>
+                    <option value="DA_XAC_NHAN">Đã xác nhận</option>
+                    <option value="DANG_SAN_XUAT">Đang sản xuất</option>
+                    <option value="HOAN_THANH"
+                            selected="selected">Hoàn thành</option>
+                    <option value="DA_HUY">Đã hủy</option>
+                </select>
+            </div>
+            <div class="order-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="order-code">VD-20261003-001</div>
+                    
+                    
+                </div>
+                <div class="order-customer">Phạm Thị Thu Trang</div>
+                <div class="order-amount">16.958.310 ₫</div>
+                <div class="order-deadline">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>09/09/2026</span>
+                </div>
+                <select class="status-select form-select-sm"
+                        onchange="changeStatus(this)" data-id="6ac0e2209753d20aab6013d4" data-original="HOAN_THANH">
+                    <option value="CHO_XAC_NHAN">Chờ xác nhận</option>
+                    <option value="DA_XAC_NHAN">Đã xác nhận</option>
+                    <option value="DANG_SAN_XUAT">Đang sản xuất</option>
+                    <option value="HOAN_THANH"
+                            selected="selected">Hoàn thành</option>
+                    <option value="DA_HUY">Đã hủy</option>
+                </select>
+            </div>
+        </div>
+        <div class="kanban-col" data-col="danger">
+            <div class="kanban-col-header">
+                <span class="col-title">Đã hủy</span>
+                <span class="col-count">1</span>
+            </div>
+            
+            <div class="order-card overdue">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="order-code">VD-20261003-005</div>
+                    
+                    <span class="badge-overdue-card">Quá hạn</span>
+                </div>
+                <div class="order-customer">Ngô Thị Hồng Nhung</div>
+                <div class="order-amount">9.941.124 ₫</div>
+                <div class="order-deadline">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>06/09/2026</span>
+                </div>
+                <select class="status-select form-select-sm"
+                        onchange="changeStatus(this)" data-id="6ac0e2229753d20aab6013d8" data-original="DA_HUY">
+                    <option value="CHO_XAC_NHAN">Chờ xác nhận</option>
+                    <option value="DA_XAC_NHAN">Đã xác nhận</option>
+                    <option value="DANG_SAN_XUAT">Đang sản xuất</option>
+                    <option value="HOAN_THANH">Hoàn thành</option>
+                    <option value="DA_HUY"
+                            selected="selected">Đã hủy</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastBox"></div>
+
+<script>
+function changeStatus(sel) {
+    const id = sel.dataset.id;
+    const status = sel.value;
+    const orig = sel.dataset.original;
+    sel.disabled = true;
+    fetch(`/orders/${id}/status?status=${encodeURIComponent(status)}`, { method: 'POST' })
+        .then(r => r.text())
+        .then(t => {
+            sel.disabled = false;
+            if (t === 'success') {
+                sel.dataset.original = status;
+                toast('Đã cập nhật trạng thái: ' + sel.options[sel.selectedIndex].text, 'success');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                toast('Lỗi: ' + t, 'danger');
+                sel.value = orig;
+            }
+        })
+        .catch(e => {
+            sel.disabled = false;
+            sel.value = orig;
+            toast('Lỗi kết nối: ' + e.message, 'danger');
+        });
+}
+function toast(msg, type) {
+    const id = 't' + Date.now();
+    const html = `<div id="${id}" class="toast align-items-center text-white bg-${type} border-0 show mb-2"><div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('${id}').remove()"></button></div></div>`;
+    document.getElementById('toastBox').insertAdjacentHTML('beforeend', html);
+    setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 4000);
+}
+</script>
+</body>
+</html>

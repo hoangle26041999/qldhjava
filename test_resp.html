@@ -1,0 +1,397 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quan ly Don hang - Nha May Nhua Viet Duc</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f6fa; }
+        .sidebar {
+            background: linear-gradient(180deg, #1e3a5f 0%, #2d5a87 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.85);
+            padding: 12px 20px;
+            margin: 4px 10px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover { background: rgba(255,255,255,0.15); color: white; }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
+        .brand-logo { padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .main-content { padding: 25px; }
+        .table-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .page-header h2 { color: #1e3a5f; font-weight: 700; }
+        .table thead th { background: #f8f9fa; color: #1e3a5f; font-weight: 600; border: none; }
+        .table tbody td { vertical-align: middle; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .action-btn { padding: 6px 10px; margin: 2px; }
+        .search-box { border-radius: 10px; border: 2px solid #e9ecef; }
+        .search-box:focus { border-color: #2d5a87; box-shadow: none; }
+        .warning-row { background: #fff8e1 !important; }
+        .overdue-row { background: #ffebee !important; }
+        .badge-warning-row { background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-overdue-row { background: #dc3545; color: #fff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; z-index: 1000; width: 250px; transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.show { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <div class="col-lg-2 col-md-2 sidebar">
+    <div class="brand-logo">
+        <i class="bi bi-factory" style="font-size: 48px;"></i>
+        <h4 class="mt-2 mb-0">VIET DUC</h4>
+        <small>NHỰA COMPOSITEP</small>
+    </div>
+    <nav class="nav flex-column mt-3">
+        <a class="nav-link" href="/">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a class="nav-link active" href="/orders">
+            <i class="bi bi-box-seam"></i> Quản Lý Đơn
+        </a>
+        <a class="nav-link" href="/orders/new-multi">
+            <i class="bi bi-plus-circle"></i> Tạo đơn mới
+        </a>
+        <a class="nav-link" href="/production/summary">
+            <i class="bi bi-clipboard-data"></i> Tổng hợp SX
+        </a>
+        <a class="nav-link" href="/reports">
+            <i class="bi bi-graph-up"></i> Báo cáo
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.2);">
+        <a class="nav-link" href="/admin/customers">
+            <i class="bi bi-people"></i> Khách hàng
+        </a>
+        <a class="nav-link" href="/admin/door-systems">
+            <i class="bi bi-grid-3x3-gap"></i> Dòng cánh
+        </a>
+        <a class="nav-link" href="/admin/processing-fees">
+            <i class="bi bi-tools"></i> Phát sinh gia công
+        </a>
+    </nav>
+</div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 main-content">
+                <button class="btn btn-light mb-3 d-md-none" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+
+                <!-- Alert Messages -->
+                
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-circle me-2"></i><span>Không tìm thấy đơn hàng!</span>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Page Header -->
+                <div class="page-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <div>
+                        <h2><i class="bi bi-box-seam me-2"></i>Quan ly Don hang</h2>
+                        <p class="text-muted mb-0">Danh sach va quan ly don hang nha may</p>
+                    </div>
+                </div>
+
+                <!-- Search & Filter -->
+                <div class="table-container mb-4">
+                    <form action="/orders" method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="bi bi-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-box border-start-0"
+                                       name="search" placeholder="Tìm kiếm theo tên, SĐT, mã ĐH..."
+                                       value="">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" class="form-control search-box" name="fromDate"
+                                   placeholder="Từ ngày" value="">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" class="form-control search-box" name="toDate"
+                                   placeholder="Đến ngày" value="">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select search-box" name="status">
+                                <option value="">-- Trạng thái --</option>
+                                <option value="CHO_XAC_NHAN">Chờ xác nhận</option>
+                                <option value="DA_XAC_NHAN">Đã xác nhận</option>
+                                <option value="DANG_SAN_XUAT">Đang sản xuất</option>
+                                <option value="HOAN_THANH">Hoàn thành</option>
+                                <option value="DA_HUY">Đã hủy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">
+                                <i class="bi bi-funnel"></i> Lọc
+                            </button>
+                            <a href="/orders" class="btn btn-outline-secondary" title="Bỏ lọc">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Orders Table -->
+                <div class="table-container">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">Danh sach don hang</h5>
+                        <span class="badge bg-secondary">5 don hang</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Mã ĐH</th>
+                                    <th>Khách hàng</th>
+                                    <th>SĐT</th>
+                                    <th>Ngày đặt</th>
+                                    <th>Deadline (10 ngày)</th>
+                                    <th>Còn</th>
+                                    <th>SL</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong class="text-primary">VD-20261003-003</strong></td>
+                                    <td>Ngô Thị Hồng Nhung</td>
+                                    <td>0930657521</td>
+                                    <td>29/09/2026</td>
+                                    <td>
+                                        <span>09/10/2026</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="bi bi-check-circle-fill"></i> Xong
+                                        </span>
+                                        
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info-subtle text-dark">5 bộ</span>
+                                        <small class="text-muted d-block">6 dòng</small>
+                                    </td>
+                                    <td class="text-end fw-bold">23.127.111 ₫</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1 align-items-start">
+                                            <span class="badge status-badge bg-success">Hoàn thành</span>
+                                            
+                                            
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="/orders/detail/6ac0d4931c5f106eabb11ae2" class="btn btn-sm btn-outline-info action-btn" title="Xem chi tiet">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="/orders/edit/6ac0d4931c5f106eabb11ae2" class="btn btn-sm btn-outline-primary action-btn" title="Chinh sua">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="/orders/delete/6ac0d4931c5f106eabb11ae2" class="btn btn-sm btn-outline-danger action-btn"
+                                           title="Xoa" onclick="return confirm('Ban co chan chan muon xoa don hang nay?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr class="warning-row">
+                                    <td><strong class="text-primary">VD-20261003-004</strong></td>
+                                    <td>Hoàng Minh Đức</td>
+                                    <td>0934279204</td>
+                                    <td>25/09/2026</td>
+                                    <td>
+                                        <span>05/10/2026</span>
+                                    </td>
+                                    <td>
+                                        
+                                        <span class="text-warning fw-bold">
+                                            <span><span>1</span> ngày</span>
+                                            
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info-subtle text-dark">4 bộ</span>
+                                        <small class="text-muted d-block">5 dòng</small>
+                                    </td>
+                                    <td class="text-end fw-bold">18.136.825 ₫</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1 align-items-start">
+                                            <span class="badge status-badge bg-secondary">Chờ xác nhận</span>
+                                            <span class="badge-warning-row"
+                                                  title="Đã trên 7 ngày chưa hoàn thành">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> Cảnh báo
+                                            </span>
+                                            
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="/orders/detail/6ac0d4931c5f106eabb11ae3" class="btn btn-sm btn-outline-info action-btn" title="Xem chi tiet">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="/orders/edit/6ac0d4931c5f106eabb11ae3" class="btn btn-sm btn-outline-primary action-btn" title="Chinh sua">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="/orders/delete/6ac0d4931c5f106eabb11ae3" class="btn btn-sm btn-outline-danger action-btn"
+                                           title="Xoa" onclick="return confirm('Ban co chan chan muon xoa don hang nay?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr class="overdue-row">
+                                    <td><strong class="text-primary">VD-20261003-002</strong></td>
+                                    <td>Vũ Quốc Bảo</td>
+                                    <td>0925729949</td>
+                                    <td>14/09/2026</td>
+                                    <td>
+                                        <span>24/09/2026</span>
+                                    </td>
+                                    <td>
+                                        
+                                        <span class="text-danger fw-bold">
+                                            
+                                            <span>Quá <span>9</span> ngày</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info-subtle text-dark">5 bộ</span>
+                                        <small class="text-muted d-block">5 dòng</small>
+                                    </td>
+                                    <td class="text-end fw-bold">25.823.802 ₫</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1 align-items-start">
+                                            <span class="badge status-badge bg-info">Đã xác nhận</span>
+                                            
+                                            <span class="badge-overdue-row"
+                                                  title="Đã quá hạn 10 ngày">
+                                                <i class="bi bi-exclamation-octagon-fill"></i> Quá hạn
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="/orders/detail/6ac0d4921c5f106eabb11ae1" class="btn btn-sm btn-outline-info action-btn" title="Xem chi tiet">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="/orders/edit/6ac0d4921c5f106eabb11ae1" class="btn btn-sm btn-outline-primary action-btn" title="Chinh sua">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="/orders/delete/6ac0d4921c5f106eabb11ae1" class="btn btn-sm btn-outline-danger action-btn"
+                                           title="Xoa" onclick="return confirm('Ban co chan chan muon xoa don hang nay?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong class="text-primary">VD-20261003-001</strong></td>
+                                    <td>Phạm Thị Thu Trang</td>
+                                    <td>0980414448</td>
+                                    <td>09/09/2026</td>
+                                    <td>
+                                        <span>19/09/2026</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="bi bi-check-circle-fill"></i> Xong
+                                        </span>
+                                        
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info-subtle text-dark">4 bộ</span>
+                                        <small class="text-muted d-block">5 dòng</small>
+                                    </td>
+                                    <td class="text-end fw-bold">16.958.310 ₫</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1 align-items-start">
+                                            <span class="badge status-badge bg-success">Hoàn thành</span>
+                                            
+                                            
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="/orders/detail/6ac0d4921c5f106eabb11ae0" class="btn btn-sm btn-outline-info action-btn" title="Xem chi tiet">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="/orders/edit/6ac0d4921c5f106eabb11ae0" class="btn btn-sm btn-outline-primary action-btn" title="Chinh sua">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="/orders/delete/6ac0d4921c5f106eabb11ae0" class="btn btn-sm btn-outline-danger action-btn"
+                                           title="Xoa" onclick="return confirm('Ban co chan chan muon xoa don hang nay?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr class="overdue-row">
+                                    <td><strong class="text-primary">VD-20261003-005</strong></td>
+                                    <td>Ngô Thị Hồng Nhung</td>
+                                    <td>0946493540</td>
+                                    <td>06/09/2026</td>
+                                    <td>
+                                        <span>16/09/2026</span>
+                                    </td>
+                                    <td>
+                                        
+                                        <span class="text-danger fw-bold">
+                                            
+                                            <span>Quá <span>17</span> ngày</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info-subtle text-dark">2 bộ</span>
+                                        <small class="text-muted d-block">5 dòng</small>
+                                    </td>
+                                    <td class="text-end fw-bold">9.941.124 ₫</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1 align-items-start">
+                                            <span class="badge status-badge bg-danger">Đã hủy</span>
+                                            
+                                            <span class="badge-overdue-row"
+                                                  title="Đã quá hạn 10 ngày">
+                                                <i class="bi bi-exclamation-octagon-fill"></i> Quá hạn
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="/orders/detail/6ac0d4941c5f106eabb11ae4" class="btn btn-sm btn-outline-info action-btn" title="Xem chi tiet">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="/orders/edit/6ac0d4941c5f106eabb11ae4" class="btn btn-sm btn-outline-primary action-btn" title="Chinh sua">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="/orders/delete/6ac0d4941c5f106eabb11ae4" class="btn btn-sm btn-outline-danger action-btn"
+                                           title="Xoa" onclick="return confirm('Ban co chan chan muon xoa don hang nay?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); }
+        window.setTimeout(function() {
+            document.querySelectorAll('.alert').forEach(function(alert) {
+                var bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title>Quản lý đơn hàng - Nhà Máy Nhựa Việt Đức</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .action-btn { padding: 6px 10px; margin: 2px; }
+        .search-box { border-radius: 10px; border: 2px solid #e9ecef; }
+        .search-box:focus { border-color: #2d5a87; box-shadow: none; }
+        .warning-row { background: #fff8e1 !important; }
+        .overdue-row { background: #ffebee !important; }
+        .badge-warning-row { background: #ffc107; color: #000; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-overdue-row { background: #dc3545; color: #fff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    </style>
+
+    <!-- Page Header -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h2><i class="bi bi-box-seam me-2"></i>Quản lý Đơn hàng</h2>
+            <p class="text-muted mb-0">Danh sách và quản lý đơn hàng nhà máy</p>
+        </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="table-container mb-4">
+        <form th:action="@{/orders}" method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control search-box border-start-0"
+                           name="search" placeholder="Tìm kiếm theo tên, SĐT, mã ĐH..."
+                           th:value="${search}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control search-box" name="fromDate"
+                       placeholder="Từ ngày" th:value="${fromDate}">
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control search-box" name="toDate"
+                       placeholder="Đến ngày" th:value="${toDate}">
+            </div>
+            <div class="col-md-2">
+                <select class="form-select search-box" name="status">
+                    <option value="">-- Trạng thái --</option>
+                    <option th:each="s : ${statusOptions}" th:value="${s.code}"
+                            th:text="${s.name}" th:selected="${status == s.code}"></option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-funnel"></i> Lọc
+                </button>
+                <a th:href="@{/orders}" class="btn btn-outline-secondary" title="Bỏ lọc">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="table-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">Danh sách đơn hàng</h5>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="/orders/status" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-kanban"></i> Bảng trạng thái
+                </a>
+                <span class="badge bg-secondary" th:text="${#lists.size(orders)} + ' đơn hàng'">0 đơn hàng</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Mã ĐH</th>
+                        <th>Khách hàng</th>
+                        <th>SĐT</th>
+                        <th>Ngày đặt</th>
+                        <th>Deadline (10 ngày)</th>
+                        <th>Còn</th>
+                        <th>SL</th>
+                        <th>Phát sinh gia công theo bộ cửa</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="order : ${orders}"
+                        th:classappend="${order.warningLevel == 'OVERDUE'} ? 'overdue-row' : (${order.warningLevel == 'WARNING'} ? 'warning-row' : '')">
+                        <td><strong class="text-primary" th:text="${order.orderCode}">VD-20261003-001</strong></td>
+                        <td th:text="${order.customerName}">Nguyen Van A</td>
+                        <td th:text="${order.customerPhone}">0123456789</td>
+                        <td th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy')}">03/10/2026</td>
+                        <td>
+                            <span th:text="${#temporals.format(order.productionDeadline, 'dd/MM/yyyy')}">13/10/2026</span>
+                        </td>
+                        <td>
+                            <span th:if="${order.completed}" class="text-success">
+                                <i class="bi bi-check-circle-fill"></i> Xong
+                            </span>
+                            <span th:unless="${order.completed}"
+                                  th:classappend="${order.daysRemaining < 0} ? 'text-danger fw-bold' : (${order.daysRemaining <= 3} ? 'text-warning fw-bold' : 'text-muted')">
+                                <span th:if="${order.daysRemaining >= 0}"><span th:text="${order.daysRemaining}">10</span> ngày</span>
+                                <span th:if="${order.daysRemaining < 0}">Quá <span th:text="${-order.daysRemaining}">0</span> ngày</span>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info-subtle text-dark"
+                                  th:text="${order.doorLineItemCount} + ' bộ'">0 bộ</span>
+                            <small class="text-muted d-block"
+                                   th:if="${order.lineItems != null and order.lineItems.size() > 1}"
+                                   th:text="${order.lineItems.size()} + ' dòng'">2 dòng</small>
+                        </td>
+                        <td>
+                            <div th:if="${order.doorFeeEntries == null or #lists.isEmpty(order.doorFeeEntries)}"
+                                 class="text-muted small fst-italic">
+                                <i class="bi bi-dash-circle"></i> Không có
+                            </div>
+                            <div th:unless="${order.doorFeeEntries == null or #lists.isEmpty(order.doorFeeEntries)}"
+                                 class="d-flex flex-column gap-1" style="max-width: 320px;">
+                                <div th:each="entry : ${order.doorFeeEntries}"
+                                     class="border rounded p-1 ps-2 bg-light-subtle">
+                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                        <span class="badge bg-primary-subtle text-primary fw-bold"
+                                              th:text="${entry.productCode} ?: '-'">DT01</span>
+                                        <small class="text-muted"
+                                               th:text="${entry.quantity} != null ? '×' + ${entry.quantity} + ' bộ' : ''">×1 bộ</small>
+                                    </div>
+                                    <div th:if="${entry.hasFees()}" class="d-flex flex-wrap gap-1 mt-1">
+                                        <span th:each="fee : ${entry.processingFeeNames}"
+                                              class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"
+                                              style="font-size: 10px; font-weight: 500;"
+                                              th:text="${fee}">Phát sinh X</span>
+                                    </div>
+                                    <div th:unless="${entry.hasFees()}"
+                                         class="text-muted small fst-italic mt-1">
+                                        Không chọn phát sinh
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(order.effectiveTotal(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">1,000,000 ₫</td>
+                        <td>
+                            <div class="d-flex flex-column gap-1 align-items-start">
+                                <select class="form-select form-select-sm status-select-inline"
+                                        style="min-width: 140px; font-size: 12px;"
+                                        th:attr="data-id=${order.id}, data-original=${order.status}"
+                                        onchange="changeRowStatus(this)">
+                                    <option th:each="s : ${statusOptions}"
+                                            th:value="${s.code}"
+                                            th:text="${s.name}"
+                                            th:selected="${s.code == order.status}">—</option>
+                                </select>
+                                <span th:if="${order.warningLevel == 'WARNING'}" class="badge-warning-row"
+                                      title="Đã trên 7 ngày chưa hoàn thành">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Cảnh báo
+                                </span>
+                                <span th:if="${order.warningLevel == 'OVERDUE'}" class="badge-overdue-row"
+                                      title="Đã quá hạn 10 ngày">
+                                    <i class="bi bi-exclamation-octagon-fill"></i> Quá hạn
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <a th:href="@{/orders/detail/{id}(id=${order.id})}" class="btn btn-sm btn-outline-info action-btn" title="Xem chi tiết">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a th:href="@{/orders/edit/{id}(id=${order.id})}" class="btn btn-sm btn-outline-primary action-btn" title="Chỉnh sửa">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a th:href="@{/orders/delete/{id}(id=${order.id})}" class="btn btn-sm btn-outline-danger action-btn"
+                               title="Xóa" onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(orders)}">
+                        <td colspan="11" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                            <strong>Không có đơn hàng nào</strong>
+                            <p class="mb-0 mt-2">Tạo đơn hàng mới để bắt đầu</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script>
+        function changeRowStatus(sel) {
+            const id = sel.dataset.id;
+            const status = sel.value;
+            const orig = sel.dataset.original;
+            sel.disabled = true;
+            fetch('/orders/' + id + '/status?status=' + encodeURIComponent(status), { method: 'POST' })
+                .then(r => r.text())
+                .then(t => {
+                    sel.disabled = false;
+                    if (t === 'success') {
+                        sel.dataset.original = status;
+                        showListToast('Đã cập nhật: ' + sel.options[sel.selectedIndex].text, 'success');
+                    } else {
+                        sel.value = orig;
+                        showListToast('Lỗi: ' + t, 'danger');
+                    }
+                })
+                .catch(e => {
+                    sel.disabled = false;
+                    sel.value = orig;
+                    showListToast('Lỗi kết nối: ' + e.message, 'danger');
+                });
+        }
+        function showListToast(msg, type) {
+            let box = document.getElementById('listToastBox');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'listToastBox';
+                box.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;';
+                document.body.appendChild(box);
+            }
+            const id = 'lt' + Date.now();
+            box.insertAdjacentHTML('beforeend',
+                '<div id="' + id + '" class="toast align-items-center text-white bg-' + type + ' border-0 show mb-2"><div class="d-flex"><div class="toast-body">' + msg + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById(\'' + id + '\').remove()"></button></div></div>');
+            setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 3500);
+        }
+    </script>
+</section>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}"
+      lang="vi">
+<head>
+    <title th:text="'Quản lý bộ cửa - ' + ${order.orderCode}">Quản lý bộ cửa</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <style>
+        .detail-card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .door-card { border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; margin-bottom: 15px; background: #f8f9fa; transition: all 0.2s; }
+        .door-card:hover { border-color: #2d5a87; }
+        .door-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #dee2e6; }
+        .door-code { background: #1e3a5f; color: white; padding: 4px 12px; border-radius: 6px; font-weight: 600; }
+        .spec-mini { display: inline-block; background: white; border: 1px solid #dee2e6; padding: 4px 10px; border-radius: 6px; margin: 2px; font-size: 13px; }
+        .spec-mini b { color: #1e3a5f; }
+        .needs-review { border-color: #ffc107; background: #fff8e1; }
+        .section-title { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #6c757d; }
+        .empty-state i { font-size: 64px; opacity: 0.3; }
+    </style>
+
+    <!-- Header -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>
+                <i class="bi bi-collection me-2"></i>
+                QUẢN LÝ BỘ CỬA
+            </h2>
+            <p class="text-muted mb-0">
+                Đơn hàng: <b class="text-primary" th:text="${order.orderCode}">—</b>
+                | Khách: <b th:text="${order.customerName}">—</b>
+            </p>
+        </div>
+        <div>
+            <a th:href="@{/orders/detail/{id}(id=${order.id})}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+            <button class="btn btn-primary" onclick="openAddDoorModal()">
+                <i class="bi bi-plus-circle"></i> Thêm bộ cửa
+            </button>
+        </div>
+    </div>
+
+    <!-- Thống kê -->
+    <div class="detail-card">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <small class="text-muted">Tổng số bộ cửa</small>
+                <h3 class="mb-0 text-primary" th:text="${order.totalDoorCount}">0</h3>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Cần KTO xác nhận</small>
+                <h3 class="mb-0 text-warning" th:text="${order.doorNeedsReviewCount}">0</h3>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Vị trí khác nhau</small>
+                <h3 class="mb-0 text-info" th:text="${order.uniqueLocationCount}">0</h3>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Giá bán</small>
+                <h3 class="mb-0 text-success"
+                    th:text="${#numbers.formatDecimal(order.effectiveTotal(), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách bộ cửa -->
+    <div class="detail-card">
+        <div class="section-title">
+            <i class="bi bi-door-closed me-2"></i>DANH SÁCH CÁC BỘ CỬA
+        </div>
+
+        <div th:if="${order.doors != null and !order.doors.isEmpty()}">
+            <div th:each="door,iter : ${order.doors}" class="door-card"
+                 th:classappend="${door.needsReview} ? 'needs-review' : ''">
+                <div class="door-card-header">
+                    <div>
+                        <span class="door-code" th:text="${door.itemCode}">—</span>
+                        <span class="badge bg-secondary ms-2"
+                              th:text="${door.location?.displayName} ?: 'Chưa chọn vị trí'">—</span>
+                        <span th:if="${door.locationDetail != null and door.locationDetail != ''}"
+                              class="text-muted ms-2"
+                              th:text="'(' + ${door.locationDetail} + ')'"></span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" th:onclick="'openEditDoorModal(' + ${iter.index} + ')'">
+                            <i class="bi bi-pencil"></i> Sửa
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                th:onclick="'deleteDoor(' + ${iter.index} + ')'">
+                            <i class="bi bi-trash"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Thông số kỹ thuật</h6>
+                        <div>
+                            <span class="spec-mini">Hệ: <b th:text="${door.doorSystem?.displayName}">—</b></span>
+                            <span class="spec-mini">Loại: <b th:text="${door.doorType?.displayName}">—</b></span>
+                            <span class="spec-mini">Mẫu: <b th:text="${door.pattern?.displayName}">—</b></span>
+                            <span class="spec-mini">Màu: <b th:text="${door.colorName} ?: '—'">—</b></span>
+                            <span class="spec-mini">Kính: <b th:text="${door.glassType?.displayName}">—</b></span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="spec-mini">Ô chờ: <b th:text="${door.openingWidth + '×' + door.openingHeight}">—</b> mm</span>
+                            <span class="spec-mini">Dày tường: <b th:text="${door.wallThickness + ' mm'}">—</b></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Kết quả SX (tự động)</h6>
+                        <div>
+                            <span class="spec-mini">Cánh SX: <b th:text="${door.leafWidth + '×' + door.leafHeight}">—</b> mm</span>
+                            <span class="spec-mini">Khuôn đứng: <b th:text="${door.verticalFrame}">—</b></span>
+                            <span class="spec-mini">Khuôn ngang: <b th:text="${door.horizontalFrame}">—</b></span>
+                            <span class="spec-mini">Khuôn cao: <b th:text="${door.heightFrame}">—</b></span>
+                            <span class="spec-mini">Nẹp đứng: <b th:text="${door.verticalTrim}">—</b>
+                                <small class="text-muted">(×<span th:text="${door.verticalTrimQuantity}">0</span>)</small>
+                            </span>
+                        </div>
+                        <div th:if="${door.needsReview}" class="alert alert-warning py-1 px-2 mt-2 mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <small>Cần KTO <b>Tùy chỉnh</b></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:unless="${order.doors != null and !order.doors.isEmpty()}" class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <h5 class="mt-3">Đơn hàng chưa có bộ cửa nào</h5>
+            <p>Nhấn "Thêm bộ cửa" để bắt đầu</p>
+        </div>
+    </div>
+
+    <!-- Modal thêm/sửa bộ cửa -->
+    <div class="modal fade" id="doorModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="doorModalTitle">Thêm bộ cửa mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="doorForm">
+                        <input type="hidden" id="doorEditIndex" value="-1">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Vị trí lắp đặt <span class="text-danger">*</span></label>
+                                <select class="form-select" id="doorLocation" required>
+                                    <option th:each="loc : ${doorLocations}"
+                                            th:value="${loc.name()}"
+                                            th:text="${loc.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Chi tiết vị trí</label>
+                                <input type="text" class="form-control" id="doorLocationDetail"
+                                       placeholder="VD: Phòng ngủ master tầng 2">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Hệ cửa <span class="text-danger">*</span></label>
+                                <select class="form-select" id="doorSystem" required>
+                                    <option th:each="s : ${doorSystems}" th:value="${s.name()}" th:text="${s.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Loại cửa <span class="text-danger">*</span></label>
+                                <select class="form-select" id="doorType" required>
+                                    <option th:each="t : ${doorTypes}" th:value="${t.name()}" th:text="${t.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Mẫu cánh</label>
+                                <select class="form-select" id="doorPattern">
+                                    <option th:each="p : ${patterns}" th:value="${p.name()}" th:text="${p.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Màu</label>
+                                <input type="text" class="form-control" id="doorColor" placeholder="VD: Trắng, Vân gỗ...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Loại kính</label>
+                                <select class="form-select" id="doorGlass">
+                                    <option th:each="g : ${glassTypes}" th:value="${g.name()}" th:text="${g.displayName}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Rộng ô chờ (mm) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="doorOpeningWidth" min="100" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cao ô chờ (mm) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="doorOpeningHeight" min="100" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Dày tường (mm) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="doorWallThickness" min="50" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDoor()">
+                        <i class="bi bi-check-circle"></i> Lưu bộ cửa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section layout:fragment="scripts">
+    <script th:inline="javascript">
+        const ORDER_ID = /*[[${order.id}]]*/ '';
+        const existingDoors = /*[[${order.doors}]]*/ [];
+
+        function openAddDoorModal() {
+            document.getElementById('doorModalTitle').textContent = 'Thêm bộ cửa mới';
+            document.getElementById('doorEditIndex').value = '-1';
+            document.getElementById('doorForm').reset();
+            new bootstrap.Modal(document.getElementById('doorModal')).show();
+        }
+
+        function openEditDoorModal(index) {
+            const door = existingDoors[index];
+            if (!door) return;
+            document.getElementById('doorModalTitle').textContent = 'Sửa bộ cửa ' + door.itemCode;
+            document.getElementById('doorEditIndex').value = index;
+            document.getElementById('doorLocation').value = door.location || '';
+            document.getElementById('doorLocationDetail').value = door.locationDetail || '';
+            document.getElementById('doorSystem').value = door.doorSystem || 'HE_40';
+            document.getElementById('doorType').value = door.doorType || 'CUA_PHONG';
+            document.getElementById('doorPattern').value = door.pattern || 'TRON';
+            document.getElementById('doorColor').value = door.colorName || '';
+            document.getElementById('doorGlass').value = door.glassType || 'KHONG';
+            document.getElementById('doorOpeningWidth').value = door.openingWidth || '';
+            document.getElementById('doorOpeningHeight').value = door.openingHeight || '';
+            document.getElementById('doorWallThickness').value = door.wallThickness || '';
+            new bootstrap.Modal(document.getElementById('doorModal')).show();
+        }
+
+        function saveDoor() {
+            const idx = parseInt(document.getElementById('doorEditIndex').value);
+            const door = {
+                location: document.getElementById('doorLocation').value,
+                locationDetail: document.getElementById('doorLocationDetail').value,
+                doorSystem: document.getElementById('doorSystem').value,
+                doorType: document.getElementById('doorType').value,
+                pattern: document.getElementById('doorPattern').value,
+                colorName: document.getElementById('doorColor').value,
+                glassType: document.getElementById('doorGlass').value,
+                openingWidth: parseInt(document.getElementById('doorOpeningWidth').value),
+                openingHeight: parseInt(document.getElementById('doorOpeningHeight').value),
+                wallThickness: parseInt(document.getElementById('doorWallThickness').value)
+            };
+
+            const url = idx === -1
+                ? '/api/orders/' + ORDER_ID + '/doors'
+                : '/api/orders/' + ORDER_ID + '/doors/' + idx;
+            const method = idx === -1 ? 'POST' : 'PUT';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(door)
+            })
+            .then(r => {
+                if (!r.ok) throw new Error('Lỗi: ' + r.statusText);
+                return r.json();
+            })
+            .then(() => {
+                bootstrap.Modal.getInstance(document.getElementById('doorModal')).hide();
+                window.location.reload();
+            })
+            .catch(err => {
+                alert('Lỗi: ' + err.message);
+            });
+        }
+
+        function deleteDoor(index) {
+            if (!confirm('Xóa bộ cửa thứ ' + (index + 1) + '?')) return;
+            fetch('/api/orders/' + ORDER_ID + '/doors/' + index, { method: 'DELETE' })
+            .then(r => {
+                if (!r.ok) throw new Error('Lỗi: ' + r.statusText);
+                return r.json();
+            })
+            .then(() => window.location.reload())
+            .catch(err => alert('Lỗi: ' + err.message));
+        }
+    </script>
+</section>
+</body>
+</html>

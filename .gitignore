@@ -1,0 +1,66 @@
+# ===== Maven build output =====
+target/
+.mvn/wrapper/maven-wrapper.jar
+.mvn
+.m2
+
+# ===== IDE =====
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.cursor/
+.project
+.classpath
+.settings/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== Local env / secrets - KHÔNG BAO GIỜ COMMIT =====
+.env
+.env.local
+.env.production
+application-local.properties
+application-secrets.properties
+
+# MongoDB credentials trong application.properties (dev) - KHÔNG COMMIT
+src/main/resources/application.properties
+src/main/resources/application-prod.properties
+src/test/resources/application.properties
+src/test/resources/application-test.properties
+# Commit file .example thay thế (không có credentials)
+
+# ===== Upload runtime data (không commit ảnh upload thật) =====
+src/main/resources/static/uploads/*
+!src/main/resources/static/uploads/.gitkeep
+
+# ===== Spring Boot generated =====
+HELP.md
+
+# ===== Node (nếu có test prototype) =====
+node_modules/
+package-lock.json
+
+# ===== Backup =====
+*.bak
+*.tmp
+backup/
+scripts/backup/
+
+# ===== Runtime libraries (offline Maven repo) =====
+runtime-lib/
+
+# ===== Runtime logs / app output =====
+app.err
+app.log
+app-stderr.log
+app-stdout.log
+app-error.log
