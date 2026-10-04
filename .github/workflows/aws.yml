@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Node 20 sẵn - tránh deprecation warning
 
     steps:
     - name: Checkout
@@ -20,6 +20,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+
+    - name: Set up Node.js 20 (required by checkout@v4)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
 
     - name: Build with Maven
       run: mvn -B -ntp -DskipTests clean package
@@ -40,7 +45,7 @@ jobs:
   # ===== Optional: Deploy to AWS ECS (chỉ chạy khi có secrets AWS đầy đủ) =====
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # cố định Ubuntu 22 (có Node 20 sẵn)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     continue-on-error: true   # không block build vì chưa config AWS
     steps:
